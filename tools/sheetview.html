@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Sheet viewer</title>
+<style>body { background: #111; margin: 4px; } canvas { image-rendering: pixelated; }</style>
+<canvas id="c"></canvas>
+<script>
+// Dev tool: shows a tile sheet scaled up with a numbered grid.
+// ?src=../assets/...png&tile=16&gap=0&scale=3&x0=0&y0=0&cols=16&rows=11 (cols/rows: the window shown)
+const P = new URLSearchParams(location.search), n = (k, d) => +(P.get(k) ?? d);
+const tile = n('tile', 16), gap = n('gap', 0), sc = n('scale', 3), x0 = n('x0', 0), y0 = n('y0', 0);
+const img = new Image();
+img.onload = () => {
+  const cols = n('cols', Math.floor(img.width / (tile + gap))), rows = n('rows', Math.floor(img.height / (tile + gap)));
+  const c = document.getElementById('c'), ctx = c.getContext('2d');
+  const cell = tile * sc + 14;
+  c.width = cols * cell; c.height = rows * cell;
+  ctx.imageSmoothingEnabled = false;
+  ctx.font = '10px monospace';
+  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+    const tx = x0 + i, ty = y0 + j;
+    ctx.fillStyle = '#2a2a2a'; ctx.fillRect(i * cell, j * cell, tile * sc, tile * sc);
+    ctx.drawImage(img, tx * (tile + gap), ty * (tile + gap), tile, tile, i * cell, j * cell, tile * sc, tile * sc);
+    ctx.fillStyle = '#9f9'; ctx.fillText(`${tx},${ty}`, i * cell, j * cell + tile * sc + 10);
+  }
+};
+img.src = P.get('src');
+</script>

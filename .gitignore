@@ -1,0 +1,10 @@
+# the original downloads; the extracted folders next to them are kept
+assets/packs/*.zip
+
+# editor and OS clutter
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
+*.log

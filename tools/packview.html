@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Pack viewer</title>
+<style>
+  body { background: #222; color: #ddd; font: 11px monospace; margin: 8px; }
+  #grid { display: flex; flex-wrap: wrap; gap: 4px; }
+  figure { margin: 0; width: 76px; text-align: center; background: #333; padding: 2px; }
+  figure img { image-rendering: pixelated; width: 64px; height: 64px; object-fit: contain; background: #555; }
+  figcaption { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; }
+</style>
+<input id="q" placeholder="filter (path substring)" size="60"> <span id="n"></span>
+<div id="grid"></div>
+<script src="packlist.js"></script>
+<script>
+// Dev tool: browse the downloaded asset packs. ?q=dungeon/altars filters by path.
+const q = document.getElementById('q'), grid = document.getElementById('grid');
+function show(filter) {
+  const list = PACK_LIST.filter((p) => p.includes(filter)).slice(0, 600);
+  document.getElementById('n').textContent = list.length + ' shown';
+  grid.innerHTML = list.map((p) => `<figure title="${p}"><img src="../assets/packs/${p.split('/').map(encodeURIComponent).join('/')}"><figcaption>${p.split('/').pop()}</figcaption></figure>`).join('');
+}
+q.value = new URLSearchParams(location.search).get('q') || '';
+q.oninput = () => show(q.value);
+show(q.value);
+</script>

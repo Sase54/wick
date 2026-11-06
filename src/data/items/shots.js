@@ -1,0 +1,1056 @@
+// Part 6, batch 1: WEAPONS AND SHOT CHANGERS (51 items).
+// Each item: name, desc (pickup line), lore (collection text), quality, pools, tags, unlock, effect,
+// plus its icon (ICONS, same color key as src/data/itemSprites.js) and costume (COSTUMES, drawn on
+// the candle: x/y relative to the 18x16 body, see src/data/sprites.js).
+export const ITEMS = {
+  // ------------------------------------------------------------------ weapons
+  copperfilament: {
+    name: 'Copper Filament', desc: 'Bright idea. Painful idea.', type: 'passive', quality: 3,
+    lore: 'A lightbulb filament still glowing without a bulb. Every shot becomes a thin laser that pierces everything and runs to the wall.',
+    pools: { treasure: 1, batteryBeggar: 1, greedTreasure: 1 }, tags: ['livewire'], unlock: 'kills250',
+    shot: { weapon: 'laser' }, look: { costume: 'filament' },
+  },
+  hummingcoil: {
+    name: 'Humming Coil', desc: 'It never stops humming. Neither will you.', type: 'passive', quality: 2,
+    lore: 'A coil of wire wound around a nail. Instead of shots, a thin laser stays on for as long as you hold shoot. You walk a little slower while it hums.',
+    pools: { treasure: 1, batteryBeggar: 0.8, greedTreasure: 1 }, tags: ['livewire'], unlock: 'actives40',
+    shot: { weapon: 'steady' }, look: { costume: 'coil' },
+  },
+  carvingknife: {
+    name: 'Carving Knife', desc: 'Mind the fingers.', type: 'passive', quality: 4,
+    lore: 'The big knife from the kitchen drawer. You hold it in front of you instead of shooting: hold to draw it back, let go to throw it. It flies out, cuts everything in its path and comes back. Held, it cuts what it touches.',
+    pools: { treasure: 0.5, devil: 0.8, redChest: 0.3, greedDevil: 0.8 }, tags: ['horned'], unlock: 'boss15',
+    shot: { weapon: 'knife' }, look: { costume: 'knifeback' },
+  },
+  waxblade: {
+    name: 'Wax-Forged Blade', desc: 'Sharp enough. Barely.', type: 'passive', quality: 3,
+    lore: 'A sword poured from white wax and cooled overnight. You swing it instead of shooting. Keep swinging to charge a spin that hits all around and throws a slash wave.',
+    pools: { treasure: 0.7, angel: 1, greedAngel: 1 }, tags: ['seraph'], unlock: 'angel3',
+    shot: { weapon: 'sword' }, look: { costume: 'sheath' },
+  },
+  powderkeg: {
+    name: 'Little Powder Keg', desc: 'Pocket-sized. Room-sized results.', type: 'passive', quality: 3,
+    lore: 'A tiny barrel of black powder. You shoot little bombs instead of wax: they roll, slow down and burst. They never hurt you.',
+    pools: { treasure: 0.8, boss: 0.5, bombBeggar: 1.2, greedTreasure: 0.8 }, tags: ['bonfire'], unlock: 'boss8',
+    shot: { weapon: 'bombs' }, look: { costume: 'fuse' },
+  },
+  bellowslung: {
+    name: 'Bellows Lung', desc: 'Deep breath in...', type: 'passive', quality: 3,
+    lore: 'An old fireplace bellows, still wheezing. Hold shoot to fill it, let go and everything comes out at once: a ragged spray of shots. Works with every weapon (a fan of beams, a fan of lasers, a ring from a thrown knife...).',
+    pools: { treasure: 1, greedTreasure: 1 }, tags: ['bloated'], unlock: 'kills1000',
+    shot: { weapon: 'barrage' }, stats: { damage: 0.5 }, look: { costume: 'cheeks' },
+  },
+  bilejar: {
+    name: 'Jar of Bile', desc: 'Contents: regret.', type: 'passive', quality: 3,
+    lore: 'Something green sloshes inside. Shots are lobbed in an arc and burst where they land, with a chance to poison. Much slower, much stronger. Lobbed shots fly over rocks.',
+    pools: { treasure: 1, rottenBeggar: 0.8, greedTreasure: 1 }, tags: ['bloated'], unlock: 'boss3',
+    shot: { weapon: 'lobbed', poison: 0.4, style: 'green' }, stats: { damage: 2, fireRateMul: 0.45 }, look: { costume: 'drool' },
+  },
+  cocoapot: {
+    name: 'Pot of Cocoa', desc: 'Let it steep.', type: 'passive', quality: 3,
+    lore: 'A dented pot of hot cocoa that never cools. Hold shoot to charge a shot and let go whenever you like: the longer you hold, the bigger and stronger it is.',
+    pools: { treasure: 1, beggar: 0.4, greedTreasure: 1 }, unlock: 'runs30',
+    shot: { charged: true }, look: { costume: 'mustache' },
+  },
+
+  // ------------------------------------------------------------------ more shots, odd shots
+  twinpupils: {
+    name: 'Twin Pupils', desc: 'Double the vision. Double the trouble.', type: 'passive', quality: 3,
+    lore: 'Two pupils sharing one eye. You fire two shots at once, with no slowdown.',
+    pools: { treasure: 1, greedTreasure: 1 }, tags: ['spiderkin'], unlock: 'items60',
+    shot: { multishot: 1 }, look: { costume: 'doublespecs' },
+  },
+  eightfold: {
+    name: 'Eightfold Gaze', desc: 'Eight eyes. Zero blinking.', type: 'passive', quality: 3,
+    lore: 'A spider-eyed lens. Four shots per volley, but much slower.',
+    pools: { treasure: 1, greedTreasure: 0.8 }, tags: ['spiderkin'], unlock: 'kills1000',
+    shot: { multishot: 3 }, stats: { fireRateMul: 0.5 }, look: { costume: 'spidereyes' },
+  },
+  hatpin: {
+    name: 'Bent Hatpin', desc: 'Straight through the heart. Mostly.', type: 'passive', quality: 2,
+    lore: 'A long pin from a grandmother\'s hat. Shots go through enemies and a bit farther.',
+    pools: { treasure: 1, shop: 0.4, greedTreasure: 1 }, unlock: 'kills100',
+    shot: { pierce: true }, stats: { range: 0.75 }, look: { costume: 'hatpin' },
+  },
+  seanceboard: {
+    name: 'Seance Board', desc: 'Is anybody there?', type: 'passive', quality: 2,
+    lore: 'A talking board with a planchette that moves on its own. Your shots drift through rocks like ghosts.',
+    pools: { treasure: 1, curse: 0.6, greedTreasure: 1 }, tags: ['spectre'], unlock: 'secrets6',
+    shot: { spectral: true, style: 'ghost' }, stats: { fireRate: 0.2 }, look: { costume: 'planchette' },
+  },
+  clottedwax: {
+    name: 'Clotted Wax', desc: 'Lumpy. Bursty. Lovely.', type: 'passive', quality: 3,
+    lore: 'Wax that set in thick red lumps. Shots are lobbed, explode where they land and burst into six smaller shots. Much slower to fire.',
+    pools: { treasure: 0.6, devil: 0.6, redChest: 0.5, greedDevil: 0.6 }, tags: ['bloated'], unlock: 'devil3',
+    shot: { weapon: 'lobbed', split: 6, style: 'red' }, stats: { damageMul: 1.3, fireRateMul: 0.5 }, look: { costume: 'clots' },
+  },
+  thinbroth: {
+    name: 'Thin Broth', desc: 'Mostly water. All speed.', type: 'passive', quality: 1,
+    lore: 'A bowl of broth so thin you can read through it. You shoot four times as fast, but every shot is tiny and weak.',
+    pools: { treasure: 1, shop: 0.6, beggar: 0.6, greedTreasure: 1 }, unlock: 'deaths20',
+    shot: { sizeMul: 0.6 }, stats: { fireRateMul: 4, damageMul: 0.25 }, look: { costume: 'brothring' },
+  },
+  bulgingeye: {
+    name: 'Bulging Eye', desc: 'It wants to get closer.', type: 'passive', quality: 3,
+    lore: 'An eye that pushes out of its socket. Much more damage and bigger shots, but they barely fly at all.',
+    pools: { treasure: 1, greedTreasure: 1 }, unlock: 'boss8',
+    shot: { sizeMul: 1.3 }, stats: { damageMul: 1.7, range: -3.5 }, look: { costume: 'bulgeye' },
+  },
+  crackedbone: {
+    name: 'Cracked Shinbone', desc: 'It splinters with feeling.', type: 'passive', quality: 2,
+    lore: 'A broken shinbone that never set. Shots become bone and shatter into three shards where they land.',
+    pools: { treasure: 1, rottenBeggar: 0.6, greedTreasure: 1 }, tags: ['ossuary'], unlock: 'win_sexton',
+    shot: { split: 3, style: 'bone' }, stats: { range: 1 }, look: { costume: 'splint' },
+  },
+  waxworm: {
+    name: 'Wax Worm', desc: 'It splits when it lands. So do they.', type: 'passive', quality: 2,
+    lore: 'A fat grub that lives in old candles. Shots burst into two smaller shots where they land.',
+    pools: { treasure: 1, rottenBeggar: 1, greedTreasure: 1 }, tags: ['spiderkin'], unlock: 'kills250',
+    shot: { split: 2 }, stats: { damage: 0.2 },
+  },
+  leakywick: {
+    name: 'Leaky Wick', desc: 'Drip, drip, drip, drip.', type: 'passive', quality: 1,
+    lore: 'A wick that will not stop dripping. Much more fire rate, much less range.',
+    pools: { treasure: 1, beggar: 0.6, greedTreasure: 1 }, unlock: 'kills100',
+    stats: { fireRate: 1.4, range: -3 }, look: { costume: 'dribble' },
+  },
+  inkblot: {
+    name: 'Ink Blot', desc: 'What do you see? Fear.', type: 'passive', quality: 3,
+    lore: 'A blot of black ink that spreads over your wax. +1 damage, and a chance to send enemies running in fear.',
+    pools: { treasure: 1, curse: 0.6, greedTreasure: 1 }, tags: ['spectre'], unlock: 'secrets12',
+    shot: { fear: 0.2, style: 'tar' }, stats: { damage: 1 }, look: { costume: 'inkstain' },
+  },
+  tarlens: {
+    name: 'Tar Lens', desc: 'Everything looks slower.', type: 'passive', quality: 2,
+    lore: 'A lens smeared with tar. Your shots fly farther and have a good chance to slow enemies down.',
+    pools: { treasure: 1, crane: 0.5, greedTreasure: 1 }, unlock: 'kills250',
+    shot: { slow: 0.4, style: 'tar' }, stats: { range: 1 }, look: { costume: 'tarlens' },
+  },
+  mercyneedle: {
+    name: 'Needle of Mercy', desc: 'A little prick. Then nothing.', type: 'passive', quality: 3,
+    lore: 'A long glass needle. Shots have a small chance to kill any normal enemy outright. Luck helps. Bosses and minibosses ignore it.',
+    pools: { treasure: 0.8, shop: 0.4, greedTreasure: 0.8 }, tags: ['wired'], unlock: 'kills2500',
+    shot: { execute: 0.03 },
+  },
+  grubskull: {
+    name: 'Grub Skull', desc: 'Something lived in here. Something angry.', type: 'passive', quality: 3,
+    lore: 'A tiny skull worn like a helmet. +0.5 damage and x1.5 damage.',
+    pools: { treasure: 1, boss: 0.6, greedBoss: 0.6 }, tags: ['ossuary'], unlock: 'boss25',
+    stats: { damage: 0.5, damageMul: 1.5 }, look: { costume: 'skullcap' },
+  },
+  gravemushroom: {
+    name: 'Grave Mushroom', desc: 'Grown on something. Do not ask what.', type: 'passive', quality: 4,
+    lore: 'A fat red toadstool from the graveyard. +1 heart container, heals you fully, x1.5 damage, more damage, range and speed, and you grow a size.',
+    pools: { treasure: 0.5, secret: 0.6, greedTreasure: 0.5 }, tags: ['moldering'], unlock: 'items100',
+    hearts: { containers: 1, heal: 24 }, stats: { damage: 0.3, damageMul: 1.5, range: 0.6, speed: 0.3 }, shot: { sizeMul: 1.15 }, look: { costume: 'mushcap' },
+  },
+  chalkcircle: {
+    name: 'Chalk Circle', desc: 'Stand in it. Feel powerful.', type: 'passive', quality: 3,
+    lore: 'A circle of chalk drawn on the floor of a bad place. +1 damage.',
+    pools: { devil: 1, curse: 0.6, demonBeggar: 0.8, greedDevil: 1 }, tags: ['horned'], unlock: 'devil3',
+    stats: { damage: 1 }, look: { costume: 'chalkmark' },
+  },
+  sootthumb: {
+    name: 'Sooty Thumbprint', desc: 'You have been marked.', type: 'passive', quality: 2,
+    lore: 'A black thumbprint pressed into your wax. +1 damage, more speed, and a soot heart.',
+    pools: { devil: 1, demonBeggar: 1, greedDevil: 1 }, tags: ['horned'], unlock: 'devil10',
+    hearts: { soot: 2 }, stats: { damage: 1, speed: 0.2 }, look: { costume: 'thumbprint' },
+  },
+  saintcinder: {
+    name: "Saint's Cinder", desc: 'Still warm from the altar.', type: 'passive', quality: 4,
+    lore: 'An ember taken from a holy fire. Shots home in, grow bigger and burn a little brighter: +0.5 damage, a bit slower.',
+    pools: { angel: 1, greedAngel: 1 }, tags: ['seraph'], unlock: 'angel10',
+    shot: { homing: true, sizeMul: 1.3, style: 'blue' }, stats: { damage: 0.5, fireRate: -0.3 }, look: { costume: 'halo', flame: 'white' },
+  },
+  lanternprayer: {
+    name: 'Lantern Prayer', desc: 'Someone up there is listening.', type: 'passive', quality: 3,
+    lore: 'A prayer written on a paper lantern. When you hit an enemy, a pillar of light sometimes comes down on it. Luck helps. Works with every weapon.',
+    pools: { angel: 1, greedAngel: 1 }, tags: ['seraph'], unlock: 'angel3',
+    mechanics: { smite: { chance: 0.12 } }, look: { costume: 'lantern' },
+  },
+  archerstar: {
+    name: "Archer's Star", desc: 'Aim for the stars. Hit them.', type: 'passive', quality: 3,
+    lore: 'A star chart with a bow drawn across it. Shots pierce enemies, and you move and shoot a little faster.',
+    pools: { planetarium: 1 }, tags: ['stargazer'], unlock: 'win_beacon',
+    shot: { pierce: true }, stats: { speed: 0.2, fireRate: 0.3 }, look: { costume: 'quiver' },
+  },
+  lunarwax: {
+    name: 'Lunar Wax', desc: 'It only melts at night.', type: 'passive', quality: 2,
+    lore: 'Pale wax poured under a full moon. More fire rate and +1 luck. Your shots glow like pearls.',
+    pools: { planetarium: 1 }, tags: ['stargazer'], unlock: 'secrets6',
+    shot: { style: 'pearl' }, stats: { fireRate: 0.5, luck: 1 }, look: { costume: 'moonmark' },
+  },
+  sunmedallion: {
+    name: 'Sun Medallion', desc: 'Warm on the chest. Hot on everything else.', type: 'passive', quality: 3,
+    lore: 'A brass sun on a chain. +1 damage and a chance to set enemies alight.',
+    pools: { planetarium: 1 }, tags: ['stargazer', 'bonfire'], unlock: 'boss15',
+    shot: { burn: 0.15 }, stats: { damage: 1 }, look: { costume: 'medallion' },
+  },
+  molarsling: {
+    name: 'Molar Sling', desc: 'Spit it like you mean it.', type: 'passive', quality: 2,
+    lore: 'A slingshot made from a wishbone, loaded with teeth. A chance for critical hits that do triple damage.',
+    pools: { treasure: 1, beggar: 0.4, greedTreasure: 1 }, tags: ['ossuary'], unlock: 'kills250',
+    shot: { crit: 0.12 },
+  },
+  sootlump: {
+    name: 'Lump of Soot', desc: 'Throw it far. It gets heavier.', type: 'passive', quality: 2,
+    lore: 'A crumbling black lump from the chimney. Your shots hit harder the farther they fly (up to two and a half times).',
+    pools: { treasure: 1, bombBeggar: 0.6, greedTreasure: 1 }, tags: ['bonfire'], unlock: 'win_cinder',
+    shot: { grow: true, style: 'tar' }, stats: { range: 1 },
+  },
+  strangelode: {
+    name: 'Strange Lodestone', desc: 'It drags the room with it.', type: 'passive', quality: 2,
+    lore: 'A black magnet that hums near meat. Your shots drag nearby enemies along with them.',
+    pools: { treasure: 1, crane: 0.5, greedTreasure: 1 }, tags: ['stargazer'], unlock: 'items60',
+    shot: { pull: true, style: 'violet' }, stats: { range: 0.5 },
+  },
+  floatingwax: {
+    name: 'Floating Wax', desc: 'Hold... hold... now.', type: 'passive', quality: 2,
+    lore: 'Wax that forgot how to fall. Shots wait in the air while you keep shooting, then all fly off when you let go (or after a couple of seconds).',
+    pools: { treasure: 1, greedTreasure: 1 }, tags: ['spectre'], unlock: 'actives40',
+    shot: { hover: true }, stats: { fireRate: 0.4 }, look: { costume: 'floaters' },
+  },
+  loopingwick: {
+    name: 'Looping Wick', desc: 'What goes out comes back in.', type: 'passive', quality: 3,
+    lore: 'A wick tied in a loop with no end. Shots pass over rocks, go out through one wall and come in through the other. Beams and lasers do too.',
+    pools: { treasure: 0.8, secret: 0.6, greedTreasure: 0.8 }, unlock: 'secrets12',
+    shot: { wrap: true, spectral: true }, stats: { range: 1.5 }, look: { costume: 'loop' },
+  },
+  chewedpencil: {
+    name: 'Chewed Pencil', desc: 'Tastes like homework.', type: 'passive', quality: 2,
+    lore: 'A pencil gnawed down to the lead. Every fifteenth attack also sprays a fistful of shots.',
+    pools: { treasure: 1, library: 0.5, greedTreasure: 1 }, tags: ['scholar'], unlock: 'items60',
+    mechanics: { pencil: {} }, look: { costume: 'eartuck' },
+  },
+  kindlingbrain: {
+    name: 'Kindling Brain', desc: 'Your thoughts are on fire.', type: 'passive', quality: 3,
+    lore: 'A head full of dry twigs. A chance to burn enemies and a chance for shots to explode where they land (never hurting you).',
+    pools: { treasure: 1, bombBeggar: 0.6, greedTreasure: 1 }, tags: ['bonfire'], unlock: 'win_kiln',
+    shot: { burn: 0.15, blast: 0.12, style: 'ember' }, look: { costume: 'twigs' },
+  },
+  reaperscythe: {
+    name: "Reaper's Sickle", desc: 'Harvest time.', type: 'passive', quality: 3,
+    lore: 'A little bone-handled sickle. +1.5 damage, big shots that go through enemies and knock them back, but slower.',
+    pools: { treasure: 0.7, devil: 0.6, curse: 0.6, greedDevil: 0.6 }, tags: ['ossuary'], unlock: 'win_morrow',
+    shot: { pierce: true, sizeMul: 1.4, knockbackMul: 1.4, style: 'dust' }, stats: { damage: 1.5, fireRateMul: 0.8 }, look: { costume: 'hood' },
+  },
+  toothpicks: {
+    name: 'Toothpicks', desc: 'Pick, pick, pick.', type: 'passive', quality: 1,
+    lore: 'A tin of splintery toothpicks. A little more fire rate and faster shots.',
+    pools: { treasure: 1, shop: 1, beggar: 1, greedShop: 1 }, unlock: 'kills100',
+    stats: { fireRate: 0.5, shotSpeed: 0.15 },
+  },
+  scorpionsign: {
+    name: 'Scorpion Sign', desc: 'The sting is in the stars.', type: 'passive', quality: 2,
+    lore: 'A constellation shaped like a stinger. Every shot poisons.',
+    pools: { planetarium: 1 }, tags: ['stargazer'], unlock: 'win_spill',
+    shot: { poison: 1, style: 'green' }, look: { costume: 'stinger' },
+  },
+  chimingshard: {
+    name: 'Chiming Shard', desc: 'It rings when it hits.', type: 'passive', quality: 3,
+    lore: 'A sliver of a broken church bell. Shots ring through enemies and rocks alike.',
+    pools: { angel: 1, greedAngel: 1 }, tags: ['seraph'], unlock: 'win_vesper',
+    shot: { pierce: true, spectral: true, style: 'pearl' }, stats: { range: 1 }, look: { costume: 'bellshard' },
+  },
+  littleplanet: {
+    name: 'Little Planet', desc: 'Everything revolves around you. Finally.', type: 'passive', quality: 2,
+    lore: 'A marble with tiny continents painted on. Your shots circle around you, drifting outward, and pass over rocks.',
+    pools: { planetarium: 1, treasure: 0.4, greedTreasure: 0.4 }, tags: ['stargazer'], unlock: 'win_echo',
+    shot: { orbit: true }, stats: { range: 2 }, look: { costume: 'moonlet' },
+  },
+  weepingstye: {
+    name: 'Weeping Stye', desc: 'It waters. It aims. Badly.', type: 'passive', quality: 2,
+    lore: 'A swollen, leaky eyelid. Attacks sometimes throw one or two stray shots off in random directions.',
+    pools: { treasure: 1, rottenBeggar: 0.6, greedTreasure: 1 }, tags: ['bloated'], unlock: 'deaths20',
+    mechanics: { stye: {} }, look: { costume: 'eyepatch' },
+  },
+  crackedmonocle: {
+    name: 'Cracked Monocle', desc: 'You see right through them.', type: 'passive', quality: 2,
+    lore: 'A monocle with a crack right across. Your shots wipe out enemy shots they touch. Beams and lasers do too.',
+    pools: { treasure: 1, shop: 0.5, greedTreasure: 1 }, unlock: 'noHit3',
+    shot: { eraser: true }, stats: { shotSpeed: 0.1 }, look: { costume: 'monocle' },
+  },
+  widesquint: {
+    name: 'Wide Squint', desc: 'Squint harder.', type: 'passive', quality: 1,
+    lore: 'Everything looks wider. Big, wide shots and a little more range.',
+    pools: { treasure: 1, shop: 0.5, greedTreasure: 1 }, unlock: 'kills100',
+    shot: { sizeMul: 1.6 }, stats: { range: 0.5 }, look: { costume: 'squint' },
+  },
+  tallowdrip: {
+    name: 'Tallow Drip', desc: 'Hot spot.', type: 'passive', quality: 2,
+    lore: 'A drip of molten tallow that never sets. Your shots leave puddles of hot wax that burn and slow whatever walks through them.',
+    pools: { treasure: 1, greedTreasure: 1 }, tags: ['bonfire'], unlock: 'win_spill',
+    mechanics: { splash: { colors: ['#a0501c', '#e0862a', '#ffd25a'] } },
+  },
+  ashpepper: {
+    name: 'Ash Pepper', desc: 'Hot. Hot. HOT.', type: 'passive', quality: 2,
+    lore: 'A grey pepper hotter than any fire. Attacks sometimes breathe out a slow, burning flame that goes through everything. Luck helps.',
+    pools: { treasure: 1, devil: 0.4, greedTreasure: 1 }, tags: ['bonfire'], unlock: 'boss3',
+    mechanics: { chili: { chance: 0.1 } }, look: { costume: 'pepperbreath' },
+  },
+  steadyhand: {
+    name: 'Steady Hand', desc: 'Breathe. Squeeze. Again.', type: 'passive', quality: 2,
+    lore: 'A marksman\'s glove. Every hit in a row adds damage, up to double. A shot that misses loses most of it.',
+    pools: { treasure: 1, shop: 0.4, greedTreasure: 1 }, unlock: 'noHit8',
+    mechanics: { deadeye: {} }, look: { costume: 'glove' },
+  },
+  hellfirelarynx: {
+    name: 'Hellfire Larynx', desc: 'Clear your throat.', type: 'passive', quality: 4,
+    lore: 'A voice box that only screams in fire. Hold to charge a thick beam that runs to the wall. With another beam item the beam is twice as wide and much stronger.',
+    pools: { devil: 0.6, redChest: 0.3, greedDevil: 0.6 }, tags: ['horned'], unlock: 'win_prism',
+    shot: { weapon: 'beam' }, stats: { damage: 1 }, look: { costume: 'collar' },
+  },
+  loosewire: {
+    name: 'Loose Wire', desc: 'Bzzt.', type: 'passive', quality: 2,
+    lore: 'A frayed wire that sparks when it moves. Attacks sometimes crackle out a thin laser as well.',
+    pools: { treasure: 1, batteryBeggar: 1, greedTreasure: 1 }, tags: ['livewire'], unlock: 'actives100',
+    mechanics: { loosewire: { chance: 0.3 } }, look: { costume: 'wirehair' },
+  },
+};
+
+// ---------------------------------------------------------------------------------- icons
+export const ICONS = {
+  // a lightbulb filament: copper zigzag between two posts, glowing
+  copperfilament: [
+    '....yyyyy....',
+    '...y.....y...',
+    '..y.oOoOo.y..',
+    '..yOoOoOoOy..',
+    '..y.oOoOo.y..',
+    '..y.k...k.y..',
+    '...yk...ky...',
+    '....k...k....',
+    '...kgggggk...',
+    '...kGgGgGk...',
+    '...kgggggk...',
+    '....kkkkk....',
+  ],
+  // a coil of copper wire around an iron nail
+  hummingcoil: [
+    '.....kk......',
+    '....kssk.....',
+    '...kOOOOk....',
+    '...kosoOk....',
+    '...kOOOOk....',
+    '...kosoOk....',
+    '...kOOOOk....',
+    '...kosoOk....',
+    '...kOOOOk....',
+    '....kssk.....',
+    '.....ks......',
+    '.....k.......',
+  ],
+  // a long kitchen knife with a wooden handle
+  carvingknife: [
+    '..........kk.',
+    '.........kSk.',
+    '........kSsk.',
+    '.......kSsk..',
+    '......kSsk...',
+    '.....kSsk....',
+    '....kSsk.....',
+    '...kkSk......',
+    '..kkokk......',
+    '.kOok........',
+    'kOok.........',
+    'kkk..........',
+  ],
+  // a white wax sword with a gold guard
+  waxblade: [
+    '..........k..',
+    '.........kSk.',
+    '........kSwk.',
+    '.......kSwk..',
+    '......kSwk...',
+    '.....kSwk....',
+    '..k.kSwk.....',
+    '..kYkwk......',
+    '...kYk.......',
+    '..kmkYk......',
+    '.kmk..k......',
+    '.kk..........',
+  ],
+  // a tiny barrel with a lit fuse
+  powderkeg: [
+    '.......yF....',
+    '......kf.....',
+    '.....k.......',
+    '...kkkkkk....',
+    '..kmooooomk..',
+    '..kgggggggk..',
+    '..kOoOOoOOk..',
+    '..kOoOOoOOk..',
+    '..kgggggggk..',
+    '..kmooooomk..',
+    '...kkkkkk....',
+  ],
+  // fireplace bellows with a brass nozzle
+  bellowslung: [
+    '.kkkkkkk.....',
+    'kOOOOOOOk....',
+    'kOrRrRrOk....',
+    'kOOOOOOOkkk..',
+    '.kOOOOOOkYYk.',
+    '.kOrRrROkYYYk',
+    '.kOOOOOOkYYk.',
+    'kOOOOOOOkkk..',
+    'kOrRrRrOk....',
+    'kOOOOOOOk....',
+    '.kkkkkkk.....',
+  ],
+  // a stoppered jar of green bile
+  bilejar: [
+    '....kkkk.....',
+    '....kmOk.....',
+    '...kkkkkk....',
+    '..kcssssck...',
+    '.kcvVvvvVck..',
+    '.ksvvVvvvsk..',
+    '.ksvxvVvvsk..',
+    '.ksvvvxvVsk..',
+    '.kcvVvvvvck..',
+    '..kcssssck...',
+    '...kkkkkk....',
+  ],
+  // a dented pot of cocoa, steaming
+  cocoapot: [
+    '...s..s......',
+    '....s..s.....',
+    '...s..s......',
+    '.kkkkkkkkk...',
+    'kgmmmmmmmgk..',
+    'kGooOooOoGkkk',
+    'kGoooooooGk.k',
+    'kgGGGGGGGgkkk',
+    'kgggggggggk..',
+    '.kkkkkkkkk...',
+  ],
+  // one eye with two pupils
+  twinpupils: [
+    '...kkkkkkk...',
+    '..kSSSSSSSk..',
+    '.kSSBkSBkSSk.',
+    'kSSBkkBkkBSSk',
+    'kSSBkkBkkBSSk',
+    '.kSSBBSBBSSk.',
+    '..kSSSSSSSk..',
+    '...kkkkkkk...',
+  ],
+  // a round lens with eight little eyes
+  eightfold: [
+    '...kkkkkkk...',
+    '..kpkpkpkpk..',
+    '.kkRkRkRkRkk.',
+    '.kpkpkpkpkpk.',
+    '.kkRkRkRkRkk.',
+    '.kpkpkpkpkpk.',
+    '..kpkpkpkpk..',
+    '...kkkkkkk...',
+    '.....kmk.....',
+    '.....kmk.....',
+    '......k......',
+  ],
+  // a bent hatpin with a pearl head
+  hatpin: [
+    '.kkk.........',
+    'kSSPk........',
+    'kSPPk........',
+    '.kkksk.......',
+    '....ksk......',
+    '.....ksk.....',
+    '......ksk....',
+    '.......ksk...',
+    '........kssk.',
+    '.........kks.',
+    '...........k.',
+  ],
+  // a seance board planchette with a glass eye
+  seanceboard: [
+    '.....kkk.....',
+    '....kOOOk....',
+    '...kOOOOOk...',
+    '..kOOkkkOOk..',
+    '..kOkcSckOk..',
+    '.kOOkSckkOOk.',
+    '.kOOOkkkOOOk.',
+    'kOOOOOOOOOOOk',
+    'kmOmOOOOOmOmk',
+    '.kk.kkkkk.kk.',
+  ],
+  // a lumpy red clot of wax
+  clottedwax: [
+    '....kkk......',
+    '...kRRrk.kk..',
+    '..kRrrrrkRrk.',
+    '.kRrrbrrrrrk.',
+    '.krrrrrbrrk..',
+    'kRrbrrrrrrrk.',
+    'krrrrrbrrrbk.',
+    '.krrbrrrrrk..',
+    '..kkrrrbkk...',
+    '....kkkk.....',
+  ],
+  // a bowl of thin broth with a spoon
+  thinbroth: [
+    '..........kk.',
+    '.........ksk.',
+    '........ksk..',
+    '.kkkkkkksk...',
+    'kcccSccskck..',
+    'kWcccccccWk..',
+    '.kWWWWWWWk...',
+    '..kWWWWWk....',
+    '...kkkkk.....',
+  ],
+  // an eye pushing out on a stalk
+  bulgingeye: [
+    '..kkkkkkk....',
+    '.kSSSSSSSk...',
+    'kSSRSSSSSSk..',
+    'kSSSBBBSSSk..',
+    'kSSBBkBBSSk..',
+    'kSSSBBBSSRk..',
+    '.kSSSSSSSk...',
+    '..kkrrrkk....',
+    '....krk......',
+    '....krrk.....',
+    '.....kk......',
+  ],
+  // a cracked bone
+  crackedbone: [
+    '.kk......kk..',
+    'kSSk....kSSk.',
+    'kSSSkkkkSSSk.',
+    '.kSSwwkwwSk..',
+    '..kSwk.kwk...',
+    '..kwk.kwSk...',
+    '.kSwwkwwSSk..',
+    'kSSSkkkkSSSk.',
+    'kSSk....kSSk.',
+    '.kk......kk..',
+  ],
+  // a fat pale grub
+  waxworm: [
+    '.....kkkk....',
+    '...kkwwwwk...',
+    '..kWwkwwkwk..',
+    '.kwwwwwwwwk..',
+    '.kWdwwdwwWk..',
+    'kwwwwwwwwk...',
+    'kWwdwwdwk....',
+    '.kwwwwwk.....',
+    '..kkkkk......',
+  ],
+  // a candle stub with a wick dripping yellow
+  leakywick: [
+    '.....k.......',
+    '....kFk......',
+    '....kyk......',
+    '.....k.......',
+    '...kkkkk.....',
+    '..kwwwwwk....',
+    '..kwYwwwk....',
+    '..kwYwwwk....',
+    '..kwwwwwk....',
+    '..kkkkkkk.Y..',
+    '..........Y..',
+    '.........YY..',
+  ],
+  // a black splash of ink
+  inkblot: [
+    '...k...k.....',
+    '..kzk.kzk.k..',
+    '.kzzzkzzzkzk.',
+    '.kzpzzzzzzzk.',
+    'kzzzzzzpzzzk.',
+    '.kzzpzzzzzk..',
+    'kzzzzzzzzzzk.',
+    '.kzkzzzpzzk..',
+    '..k.kzzkzk...',
+    '.....k..k....',
+  ],
+  // a round lens smeared with tar
+  tarlens: [
+    '...kkkkk.....',
+    '..kgzzzgk....',
+    '.kgzppzzgk...',
+    '.kzpzzzczk...',
+    '.kzzzzzzzk...',
+    '.kgzzczzgk...',
+    '..kgzzzgkk...',
+    '...kkkkkkok..',
+    '.........kok.',
+    '..........kk.',
+  ],
+  // a long glass needle
+  mercyneedle: [
+    '..........kk.',
+    '.........kgGk',
+    '........kgGk.',
+    '.......kcck..',
+    '......kcSck..',
+    '.....kcSck...',
+    '....kcSck....',
+    '...kcck......',
+    '..kck........',
+    '.ksk.........',
+    'ks...........',
+  ],
+  // a tiny skull helmet
+  grubskull: [
+    '...kkkkkk....',
+    '..kSSSSSSk...',
+    '.kSSSSSSSSk..',
+    '.kSkkSSkkSk..',
+    '.kSkzSSkzSk..',
+    '.kSSSkkSSSk..',
+    '..kSSSSSSk...',
+    '..kSkSkSkk...',
+    '...kkkkkk....',
+  ],
+  // a red toadstool with white spots
+  gravemushroom: [
+    '....kkkkk....',
+    '..kkRrrrRkk..',
+    '.kRrSrrrSrRk.',
+    'kRrrrrSrrrrRk',
+    'krSrrrrrrSrrk',
+    'kkkkkkkkkkkkk',
+    '....kwwwk....',
+    '....kwwWk....',
+    '....kwwWk....',
+    '...kwwwwWk...',
+    '...kkkkkkk...',
+  ],
+  // a chalk star in a circle
+  chalkcircle: [
+    '...kkkkkkk...',
+    '..kG.....Gk..',
+    '.kG...G...Gk.',
+    'kG...GGG...Gk',
+    'kGGGGGGGGGGGk',
+    'kG.GG...GG.Gk',
+    'kG..GG.GG..Gk',
+    '.kG.G.G.G.Gk.',
+    '..kGG...GGk..',
+    '...kkkkkkk...',
+  ],
+  // a sooty black thumbprint
+  sootthumb: [
+    '...kkkkk.....',
+    '..kznnnzk....',
+    '.kznzzznzk...',
+    '.knzznzznk...',
+    '.knznznznk...',
+    '.knznzznzk...',
+    '.knzznnzk....',
+    '..knzzznk....',
+    '...kznzk.....',
+    '....kkk......',
+  ],
+  // a blue-white ember on a little dish
+  saintcinder: [
+    '.....c.......',
+    '....kck......',
+    '...kcSck.....',
+    '..kcSSSck....',
+    '..kcSSScck...',
+    '..kBcSccBk...',
+    '...kBccBk....',
+    '.kkkkkkkkkk..',
+    'kYYYYYYYYYYk.',
+    '.kkkkkkkkkk..',
+  ],
+  // a paper lantern with writing
+  lanternprayer: [
+    '.....kk......',
+    '....kgk......',
+    '...kkkkk.....',
+    '..kYyyyYk....',
+    '.kYykyykYk...',
+    '.kYyykyyYk...',
+    '.kYykkkyYk...',
+    '.kYyyyyyYk...',
+    '..kYyyyYk....',
+    '...kkkkk.....',
+    '....kFk......',
+  ],
+  // a star with a bow through it
+  archerstar: [
+    '......k......',
+    '.k...kYk.....',
+    'kok..kYk.....',
+    'k.okkYlYkkk..',
+    'k..kYlllYYk..',
+    'k...kYlYk.ssk',
+    'k..kYk.kYk...',
+    'k.okk...kk...',
+    'kok..........',
+    '.k...........',
+  ],
+  // a pale crescent of wax
+  lunarwax: [
+    '....kkkk.....',
+    '..kkSSSk.....',
+    '.kSSwkk......',
+    'kSSwk........',
+    'kSwk.........',
+    'kSwk.........',
+    'kSSwk........',
+    '.kSSwkk......',
+    '..kkSSSk.....',
+    '....kkkk.....',
+  ],
+  // a brass sun medallion on a chain
+  sunmedallion: [
+    '..k.......k..',
+    '...k.....k...',
+    '....k.Y.k....',
+    '..Y.kkkkk.Y..',
+    '...kYYYYYk...',
+    '.YkYeYYYeYkY.',
+    '...kYYeYYk...',
+    '..Y.kYYYk.Y..',
+    '.....kkk.....',
+    '......Y......',
+  ],
+  // a slingshot loaded with a tooth
+  molarsling: [
+    'kk.......kk..',
+    'kok.....kok..',
+    '.kok...kok...',
+    '..kokkkok....',
+    '...kSSSk.....',
+    '...kSwSk.....',
+    '....kok......',
+    '....kok......',
+    '....kok......',
+    '....kkk......',
+  ],
+  // a crumbling black lump
+  sootlump: [
+    '.....kkk.....',
+    '...kknznkk...',
+    '..knzzzzznk..',
+    '.knzzgzzzznk.',
+    '.kzzzzzzgzzk.',
+    '.knzgzzzzznk.',
+    '..kzzzzzzzk..',
+    '...kknzzkk.n.',
+    '.....kkk..n..',
+  ],
+  // a horseshoe magnet with violet sparks
+  strangelode: [
+    '.p.......p...',
+    '..kkk.kkk....',
+    '.ksSk.kSsk...',
+    '.kzzk.kzzk...',
+    '.kzzk.kzzk...',
+    '.kzzkkkzzk.p.',
+    '.kzzzzzzzk...',
+    '..kzzzzzk....',
+    '...kkkkk.....',
+  ],
+  // a blob of wax hanging in the air over its shadow
+  floatingwax: [
+    '....kkkk.....',
+    '...kwwwwk....',
+    '..kwSwwwWk...',
+    '..kwwwwwWk...',
+    '..kWwwwWWk...',
+    '...kWWWWk....',
+    '....kkkk.....',
+    '.............',
+    '...nnnnnn....',
+    '..nnnnnnnn...',
+  ],
+  // a wick tied in a loop
+  loopingwick: [
+    '....kkkkk....',
+    '...kFfffFk...',
+    '..kFk...kFk..',
+    '..kfk...kfk..',
+    '..kFk...kFk..',
+    '...kFk.kFk...',
+    '....kFkFk....',
+    '.....kfk.....',
+    '....kFkFk....',
+    '...kFk.kFk...',
+    '...kk...kk...',
+  ],
+  // a pencil gnawed at one end
+  chewedpencil: [
+    '..........kk.',
+    '.........kgk.',
+    '........kPPk.',
+    '.......kYYk..',
+    '......kYYk...',
+    '.....kYYk....',
+    '....kYYk.....',
+    '...kYYk......',
+    '..kOkk.......',
+    '.kOOk........',
+    'kzk..........',
+  ],
+  // a skull-shaped pile of burning twigs
+  kindlingbrain: [
+    '...F.f..F....',
+    '..fFkFfkf....',
+    '.kokokokok...',
+    'kooOooOooOk..',
+    'kOomoOmooOk..',
+    'kooOooOomok..',
+    '.kOomoOook...',
+    '..kkkkkkk....',
+  ],
+  // a little sickle with a bone handle
+  reaperscythe: [
+    '...kkkkk.....',
+    '..kssssSk....',
+    '.ksk...kSk...',
+    '.kk.....kk...',
+    '........kSk..',
+    '.......kSk...',
+    '......kSk....',
+    '.....kSk.....',
+    '....kSk......',
+    '...kSk.......',
+    '...kk........',
+  ],
+  // a tin of toothpicks
+  toothpicks: [
+    '..d.d.d......',
+    '..d.d.dd.....',
+    '..dWdWdW.....',
+    '.kkkkkkkk....',
+    '.kGGGGGGk....',
+    '.kgrrrrgk....',
+    '.kgRRRRgk....',
+    '.kGGGGGGk....',
+    '.kkkkkkkk....',
+  ],
+  // a constellation shaped like a stinger
+  scorpionsign: [
+    '..........V..',
+    '.........k.k.',
+    '.........V...',
+    '........k....',
+    '..V.k.V......',
+    '.k.....k.....',
+    'V.......V....',
+    '.k.....k.....',
+    '..V.k.V......',
+  ],
+  // a sliver of bronze bell
+  chimingshard: [
+    '....kkk......',
+    '...kYYYk.....',
+    '..kYllYk.....',
+    '..kYlYYk.....',
+    '.kYlYYk......',
+    '.kYYYYk......',
+    'kYlYYk.......',
+    'kYYYk........',
+    'kkkk.........',
+  ],
+  // a painted marble planet with a ring
+  littleplanet: [
+    '....kkkk.....',
+    '..kkBvBBkk...',
+    '.kBvvBBvBBk..',
+    'kYYYYYYYYYYYk',
+    '.kBBvvBBvBk..',
+    '..kkBBvBkk...',
+    '....kkkk.....',
+  ],
+  // a swollen weepy eyelid
+  weepingstye: [
+    '...kkkkkk....',
+    '..kRRRRRRk...',
+    '.kRrRRRrRRk..',
+    'kRSSSSSSSRk..',
+    'kSSSBBBSSSk..',
+    'kSSBBkBBSSk..',
+    '.kSSBBBSSk...',
+    '..kkkkkkk....',
+    '.....c.......',
+    '.....c..c....',
+  ],
+  // a monocle with a crack and a chain
+  crackedmonocle: [
+    '..kkkkk......',
+    '.kcSccck.....',
+    'kcSkcccck....',
+    'kccckcccck...',
+    'kcccckccck...',
+    '.kcccckck....',
+    '..kkkkkk.....',
+    '.......kY....',
+    '........Y.Y..',
+    '.........Y...',
+  ],
+  // a wide squinting eye
+  widesquint: [
+    '.............',
+    '.kkkkkkkkkkk.',
+    'kSSSSSSSSSSSk',
+    'kSSBBBkBBBSSk',
+    'kkkkkkkkkkkkk',
+    '.............',
+  ],
+  // a drip of molten tallow over a puddle
+  tallowdrip: [
+    '.....kk......',
+    '....kFFk.....',
+    '....kfFk.....',
+    '...kfFFfk....',
+    '...kffFfk....',
+    '....kffk.....',
+    '.....kk......',
+    '.kkkkkkkkkk..',
+    'kfFffFfffFfk.',
+    '.kkkkkkkkkk..',
+  ],
+  // a grey pepper with ash smoke
+  ashpepper: [
+    '..g.g........',
+    '...g.........',
+    '...kvk.......',
+    '..kGGGk......',
+    '.kGgGGgk.....',
+    '.kGGGgGk.....',
+    '..kGgGGk.....',
+    '..kGGgGk.....',
+    '...kGGk......',
+    '....kk.......',
+  ],
+  // a leather marksman glove
+  steadyhand: [
+    '..k.k.k......',
+    '.kokokok.....',
+    '.kokokokk....',
+    '.kokokokok...',
+    '.kooooooOk...',
+    '.koooooOk....',
+    '..kooooOk....',
+    '..kYYYYYk....',
+    '..kkkkkkk....',
+  ],
+  // a dark voice box spitting fire
+  hellfirelarynx: [
+    '..........F..',
+    '...kkkk..Fy..',
+    '..krrrrk.fF..',
+    '.krbkkbrkF...',
+    '.krkfFkrrk...',
+    '.krkFfkrk....',
+    '.krbkkbrk....',
+    '..krrrrk.....',
+    '...kbbk......',
+    '...kbbk......',
+    '...kkkk......',
+  ],
+  // a frayed copper wire, sparking
+  loosewire: [
+    '.y.......y...',
+    '..kk...kk....',
+    '.y.kOkOk.y...',
+    '....kOk......',
+    '....kok......',
+    '....kOk......',
+    '....kok......',
+    '....kOk......',
+    '....kkk......',
+  ],
+};
+
+// ---------------------------------------------------------------------------------- costumes
+// Drawn on the candle (x, y relative to the 18x16 body; `behind` draws behind it).
+export const COSTUMES = {
+  // a glowing filament loop sticking out of the top of the head
+  filament: { rows: ['..y..y..', '.yOOOOy.', '..o..o..', '..k..k..'], colors: { o: '#7a5034', O: '#b8865a', y: '#fff3c0', k: '#160f0c' }, x: 5, y: -3, facings: ['down', 'side', 'up'] },
+  // copper wire wound around the middle of the body
+  coil: { rows: ['OoOoOoOoOoOoOo', 'oOoOoOoOoOoOoO'], colors: { o: '#7a5034', O: '#b8865a' }, x: 2, y: 9, facings: ['down', 'side', 'up'] },
+  // a knife handle sticking out of the back
+  knifeback: { rows: ['.kk.', 'kook', 'kOok', 'kook', '.kk.', '.ss.', '.ss.'], colors: { o: '#5a3420', O: '#c8b48a', s: '#b8bcc8', k: '#160f0c' }, x: 13, y: -3, facings: ['down', 'side', 'up'], behind: true },
+  // a sword sheath strapped across the back
+  sheath: { rows: ['..........kY', '........kmk.', '......kmk...', '....kmk.....', '..kmk.......', 'kmk.........'], colors: { m: '#5a3420', Y: '#d8b048', k: '#160f0c' }, x: 3, y: 1, facings: ['up', 'side'], behind: true },
+  // a fuse poking out of the head, sparking
+  fuse: { rows: ['.F.', 'y..', '.k.', '.k.', 'kk.'], colors: { F: '#ffd25a', y: '#fff3c0', k: '#2a2420' }, x: 11, y: -4, facings: ['down', 'side', 'up'] },
+  // puffed red cheeks
+  cheeks: { rows: ['RR.......RR', 'Rr.......rR'], colors: { R: '#ff8a7a', r: '#e05a50' }, x: 3, y: 9, facings: ['down'] },
+  // green drool down the chin
+  drool: { rows: ['vv', 'Vv', '.v', '.V'], colors: { v: '#5a8a34', V: '#9ccf6a' }, x: 8, y: 11, facings: ['down'] },
+  // a cocoa mustache
+  mustache: { rows: ['.oo..oo.', 'oooooooo', 'o......o'], colors: { o: '#6a4020' }, x: 5, y: 9, facings: ['down'] },
+  // spectacles with two lenses per eye
+  doublespecs: { rows: ['kkkkkkkkkkkkkk', 'kckckkkkkckckk', 'kkkkk....kkkkk'], colors: { k: '#160f0c', c: '#8ad0f0' }, x: 2, y: 6, facings: ['down'] },
+  // eight little red eyes across the forehead
+  spidereyes: { rows: ['r.r.r.r.r', '.r.r.r.r.'], colors: { r: '#ff3a2a' }, x: 4, y: 3, facings: ['down', 'side'] },
+  // a hatpin stuck through the head
+  hatpin: { rows: ['PP..........', 'PPssssssssss'], colors: { P: '#e090b0', s: '#d8d8e0' }, x: 0, y: 2, facings: ['down', 'side', 'up'] },
+  // a planchette floating above the head
+  planchette: { rows: ['..kkk..', '.kOcOk.', 'kOOOOOk', '.kkkkk.'], colors: { O: '#b8865a', c: '#8ad0f0', k: '#160f0c' }, x: 5, y: -7, facings: ['down', 'side', 'up'] },
+  // red lumps of wax stuck all over
+  clots: { rows: ['r.........r', '...........', '.r......r..', '.....r.....', 'r..........'], colors: { r: '#a01c18' }, x: 3, y: 4, facings: ['down', 'side', 'up'] },
+  // a pale broth ring around the mouth
+  brothring: { rows: ['.cccc.', 'c....c', '.cccc.'], colors: { c: '#d8eef8' }, x: 6, y: 9, facings: ['down'] },
+  // one huge bloodshot eye bulging out of the face
+  bulgeye: { rows: ['.kkkk.', 'kSRSSk', 'kSBBSk', 'kSBkSk', 'kSSRSk', '.kkkk.'], colors: { k: '#160f0c', S: '#f8f4e8', R: '#c0262c', B: '#3a6ad0' }, x: 3, y: 4, facings: ['down'] },
+  // a splint and bandage on the side
+  splint: { rows: ['SS', 'kk', 'SS', 'SS', 'kk', 'SS'], colors: { S: '#f8f4e8', k: '#9a927e' }, x: 15, y: 6, facings: ['down', 'side', 'up'] },
+  // a yellow dribble from the wick down the side
+  dribble: { rows: ['Y', 'Y', '.', 'Y', 'Y', 'Y', '.', 'Y'], colors: { Y: '#e8d860' }, x: 12, y: 1, facings: ['down', 'side', 'up'] },
+  // an ink stain spreading over one side of the face
+  inkstain: { rows: ['zz...', 'zzz..', 'zzzz.', '.zzz.', 'zz...', '.z...'], colors: { z: '#0b0807' }, x: 2, y: 3, facings: ['down', 'side'] },
+  // a tar-smeared lens over one eye
+  tarlens: { rows: ['kkkk', 'kzzk', 'kzck', 'kkkk'], colors: { k: '#160f0c', z: '#28202e', c: '#8a7aa0' }, x: 10, y: 5, facings: ['down'] },
+  // a little skull worn as a cap
+  skullcap: { rows: ['..kkkkkk..', '.kSSSSSSk.', 'kSkkSSkkSk', 'kSkzSSkzSk', '.kkkkkkkk.'], colors: { k: '#160f0c', S: '#f8f4e8', z: '#2a2420' }, x: 4, y: -3, facings: ['down', 'side', 'up'] },
+  // a red mushroom cap with white spots
+  mushcap: { rows: ['....kkkkkk....', '..kkRrSrrRkk..', '.kRrrrrrSrrRk.', 'kRSrrrRrrrrSRk', 'kkkkkkkkkkkkkk'], colors: { k: '#160f0c', R: '#ff6a5a', r: '#c0262c', S: '#f8f4e8' }, x: 2, y: -4, facings: ['down', 'side', 'up'] },
+  // a chalk star drawn on the forehead
+  chalkmark: { rows: ['..G..', 'GGGGG', '.G.G.', 'G...G'], colors: { G: '#e8e4d8' }, x: 7, y: 2, facings: ['down'] },
+  // a black thumbprint on the cheek
+  thumbprint: { rows: ['.zz.', 'znzz', 'zznz', '.zz.'], colors: { z: '#0b0807', n: '#4a4540' }, x: 11, y: 8, facings: ['down', 'side'] },
+  // a glowing halo
+  halo: { rows: ['.cccccccc.', 'c........c', '.cccccccc.'], colors: { c: '#fff4c0' }, x: 4, y: -7, facings: ['down', 'side', 'up'] },
+  // a little paper lantern hanging at the side
+  lantern: { rows: ['.k.', 'kYk', 'YyY', 'YyY', 'kYk'], colors: { k: '#160f0c', Y: '#d8b048', y: '#fff3c0' }, x: -2, y: 6, facings: ['down', 'side', 'up'] },
+  // a quiver of arrows on the back
+  quiver: { rows: ['s.s.s', 'k.k.k', 'ooooo', 'oOOOo', 'ooooo', 'oOOOo', '.ooo.'], colors: { s: '#d8d8e0', k: '#160f0c', o: '#5a3420', O: '#7a5034' }, x: 12, y: -1, facings: ['up', 'side', 'down'], behind: true },
+  // a pale crescent moon on the forehead
+  moonmark: { rows: ['.SS', 'S..', 'S..', '.SS'], colors: { S: '#f8f4e8' }, x: 8, y: 2, facings: ['down'] },
+  // a brass sun medallion on the chest
+  medallion: { rows: ['k.....k', '.k...k.', '..YYY..', '.YeYeY.', '..YYY..'], colors: { k: '#3a2a1c', Y: '#d8b048', e: '#8a6a20' }, x: 5, y: 8, facings: ['down'] },
+  // a hovering wax droplet on each side
+  floaters: { rows: ['w............w', 'W............W'], colors: { w: '#e8d9b0', W: '#c9b48a' }, x: 2, y: 0, facings: ['down', 'side', 'up'] },
+  // a wick loop above the head
+  loop: { rows: ['.FFF.', 'F...F', 'F...F', '.F.F.'], colors: { F: '#ffd25a' }, x: 6, y: -6, facings: ['down', 'side', 'up'] },
+  // a pencil tucked behind the ear
+  eartuck: { rows: ['P.......', 'YYYYYYYO', '.......k'], colors: { P: '#e090b0', Y: '#d8b048', O: '#b8865a', k: '#160f0c' }, x: 10, y: 3, facings: ['down', 'side', 'up'] },
+  // a crown of dry twigs, smoldering
+  twigs: { rows: ['f.o..o.f', '.o.oo.o.', 'oooooooo'], colors: { o: '#7a5034', f: '#f08a24' }, x: 5, y: 0, facings: ['down', 'side', 'up'] },
+  // a dusty grey hood
+  hood: { rows: ['....nnnnnn....', '..nngggggGnn..', '.ngg......Ggn.', 'ngg........Ggn', 'ng..........gn', 'ng..........gn', 'ng..........gn', 'n............n'], colors: { n: '#2a2622', g: '#6e665c', G: '#9a9288' }, x: 2, y: -1, facings: ['down', 'side', 'up'] },
+  // a scorpion stinger curling over the head
+  stinger: { rows: ['.kV.', 'k..k', '...k', '..k.', '.k..'], colors: { k: '#3e5a1c', V: '#9ccf6a' }, x: 14, y: -4, facings: ['down', 'side', 'up'], behind: true },
+  // a bronze bell shard stuck in the side of the head
+  bellshard: { rows: ['.Y', 'Yl', 'YY'], colors: { Y: '#d8b048', l: '#fff0a0' }, x: 3, y: 2, facings: ['down', 'side', 'up'] },
+  // a tiny planet orbiting the head
+  moonlet: { rows: ['.kk.', 'kBvk', 'kvBk', '.kk.'], colors: { k: '#160f0c', B: '#3a6ad0', v: '#5a8a34' }, x: 15, y: -3, facings: ['down', 'side', 'up'], flap: true },
+  // a patch over a weepy eye
+  eyepatch: { rows: ['kkkkkkkkkkkkkk', '......kzzk....', '......kzzk....', '.......kk.....'], colors: { k: '#160f0c', z: '#2a2420' }, x: 2, y: 5, facings: ['down'] },
+  // a cracked monocle on a chain
+  monocle: { rows: ['.kkk.', 'kcSck', 'kckck', '.kkkY', '....Y'], colors: { k: '#160f0c', c: '#8ad0f0', S: '#ffffff', Y: '#d8b048' }, x: 10, y: 5, facings: ['down'] },
+  // narrowed squinting eyelids
+  squint: { rows: ['kkkk..kkkk'], colors: { k: '#160f0c' }, x: 4, y: 6, facings: ['down'] },
+  // grey breath puffing from the mouth
+  pepperbreath: { rows: ['..gg', '.g..', 'g.g.'], colors: { g: '#a8a29a' }, x: 10, y: 9, facings: ['down', 'side'] },
+  // a leather glove on one side
+  glove: { rows: ['.kok', 'kook', 'kooo', 'kooO', '.YYY'], colors: { k: '#160f0c', o: '#7a5034', O: '#b8865a', Y: '#d8b048' }, x: -2, y: 8, facings: ['down', 'side', 'up'] },
+  // a spiked iron collar
+  collar: { rows: ['.k..k..k..k..', 'kggggggggggg.', 'kgrgggrgggrg.'], colors: { k: '#160f0c', g: '#45403a', r: '#c0262c' }, x: 3, y: 11, facings: ['down', 'side', 'up'] },
+  // frayed copper wires sticking out like hair
+  wirehair: { rows: ['O.y..O', '.O.O.O', '..OOO.'], colors: { O: '#b8865a', y: '#fff3c0' }, x: 6, y: -2, facings: ['down', 'side', 'up'] },
+};

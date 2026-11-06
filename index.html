@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0807">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="WICK">
+  <meta name="description" content="A dark little candle fights its way down through a monster-filled cellar.">
+  <title>WICK: Down the Cellar</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icons/favicon-32.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="stage">
+    <canvas id="screen" width="384" height="216"></canvas>
+  </div>
+
+  <!-- Touch controls: full-screen layer, joysticks float where the thumb lands -->
+  <div id="touch" aria-hidden="true">
+    <div class="stick" id="stick-move"><div class="knob"></div></div>
+    <div class="stick" id="stick-shoot"><div class="knob"></div></div>
+    <button class="tbtn" id="btn-pause" data-action="pause">II</button>
+    <button class="tbtn" id="btn-bomb" data-action="bomb">B</button>
+    <button class="tbtn" id="btn-active" data-action="active">USE</button>
+    <button class="tbtn" id="btn-pocket" data-action="pocket">PKT</button>
+    <button class="tbtn" id="btn-switch" data-action="switch">SWAP</button>
+  </div>
+
+  <div id="rotate">
+    <div class="rotate-icon"></div>
+    <p>Turn your phone sideways</p>
+  </div>
+
+  <!-- Probe used to read safe-area insets from CSS -->
+  <div id="safe-probe"></div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

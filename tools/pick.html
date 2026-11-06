@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Pick</title>
+<style>
+  body { background: #1a1414; color: #ddd; font: 10px monospace; margin: 4px; }
+  #g { display: flex; flex-wrap: wrap; gap: 3px; }
+  figure { margin: 0; width: 100px; text-align: center; }
+  img { image-rendering: pixelated; width: 96px; height: 96px; object-fit: contain; background: #2e2622; }
+  figcaption { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+</style>
+<div id="g"></div>
+<script>
+// Dev tool: ?l=path1,path2 (relative to assets/packs/; D/ = the DCSS folder) shows those sprites at 3x.
+const D = 'Dungeon_Crawl_Stone_Soup_Full_0/Dungeon Crawl Stone Soup Full/';
+const list = (new URLSearchParams(location.search).get('l') || '').split(',').filter(Boolean);
+document.getElementById('g').innerHTML = list.map((p) => {
+  const full = p.replace(/^D\//, D);
+  return `<figure><img src="../assets/packs/${full.split('/').map(encodeURIComponent).join('/')}"><figcaption>${p.split('/').pop()}</figcaption></figure>`;
+}).join('');
+</script>

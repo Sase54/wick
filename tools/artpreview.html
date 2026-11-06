@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Art preview</title>
+<style>
+  body { background: #0e0a08; color: #c8b8a0; font: 10px monospace; margin: 4px; }
+  canvas { image-rendering: pixelated; }
+</style>
+<canvas id="c"></canvas>
+<script type="module">
+// Dev tool: every pack sprite (src/data/packArt.js) after recoloring, at 3x on a floor-colored
+// background. ?only=prefix filters by key. Run from the game folder's server (serve.ps1).
+import { loadPackArt, packSprite } from '../src/engine/packart.js';
+import { PACK_ART } from '../src/data/packArt.js';
+await loadPackArt();
+const only = new URLSearchParams(location.search).get('only') || '';
+const keys = Object.keys(PACK_ART).filter((k) => k.startsWith(only));
+const S = 3, cell = 36 * S, cols = 7;
+const c = document.getElementById('c'), ctx = c.getContext('2d');
+c.width = cols * cell; c.height = Math.ceil(keys.length / cols) * (cell + 12);
+ctx.imageSmoothingEnabled = false;
+ctx.font = '10px monospace';
+keys.forEach((k, i) => {
+  const x = (i % cols) * cell, y = Math.floor(i / cols) * (cell + 12);
+  ctx.fillStyle = (i + Math.floor(i / cols)) % 2 ? '#2d2219' : '#241b14';
+  ctx.fillRect(x, y, cell, cell);
+  const s = packSprite(k);
+  if (s) ctx.drawImage(s, x + (cell - s.width * S) / 2, y + (cell - s.height * S) / 2, s.width * S, s.height * S);
+  else { ctx.fillStyle = '#f44'; ctx.fillText('MISSING', x + 4, y + 20); }
+  ctx.fillStyle = '#c8b8a0'; ctx.fillText(k, x + 2, y + cell + 10);
+});
+window.done = true;
+</script>
