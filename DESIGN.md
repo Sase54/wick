@@ -1356,3 +1356,5 @@ unlock all, reset progress. Sliders and choices: tap left of the middle of `< va
 
 **Phone layout (844x390):** the shooting pad is 3x60 px buttons in a cross, 40 px above the bottom-right corner;
 the action buttons (SWAP, PKT, USE, B) sit in a row above it, just under the minimap.
+
+**Updates:** the service worker fetches every file with `cache: no-cache` (it asks the server each time, so a new push shows up on the next load instead of after the browser's 10-minute cache). The game checks for a new version whenever it comes back to the front; when one takes over it reloads at once on the title screen, or on the next launch if a run is going.

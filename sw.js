@@ -2,7 +2,7 @@
 // Strategy: try the network first (so updates show up right away), fall back to the
 // cache when offline. Everything is also cached up front on install.
 // When you add a new file to the game, add it to ASSETS and bump VERSION.
-const VERSION = 'wick-v19';
+const VERSION = 'wick-v20';
 const ASSETS = [
   './',
   'index.html',
@@ -237,7 +237,9 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
   event.respondWith(
-    fetch(req)
+    // no-cache: always ask the server (a cheap 304 when nothing changed) instead of the browser's
+    // own 10-minute HTTP cache, so a new version shows up on the next load
+    fetch(req, { cache: 'no-cache' })
       .then((res) => {
         if (res.ok) {
           const copy = res.clone();

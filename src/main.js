@@ -68,7 +68,18 @@ function goFullscreen() {
 
 // Offline support (not when opened straight from a file).
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  // Updates: check for a new version on load and whenever the game comes back to the front
+  // (a home-screen app is rarely reloaded). When a new version takes over, reload right away
+  // on the title screen; mid-run it loads the next time the game is opened.
+  const hadController = !!navigator.serviceWorker.controller;
+  let reg = null;
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').then((r) => { reg = r; }).catch(() => {}));
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') reg?.update().catch(() => {});
+  });
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadController && app.screen === 'title') location.reload();
+  });
 }
 game.onQuit = () => app.toTitle();
 
