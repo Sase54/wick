@@ -20,10 +20,10 @@
     <canvas id="screen" width="384" height="216"></canvas>
   </div>
 
-  <!-- Touch controls: full-screen layer, joysticks float where the thumb lands -->
+  <!-- Touch controls: full-screen layer; the move stick floats where the left thumb lands, the 4-button shooting pad sits bottom-right -->
   <div id="touch" aria-hidden="true">
     <div class="stick" id="stick-move"><div class="knob"></div></div>
-    <div class="stick" id="stick-shoot"><div class="knob"></div></div>
+    <div id="dpad"><div class="dbtn" data-dir="up">&#9650;</div><div class="dbtn" data-dir="left">&#9664;</div><div class="dbtn" data-dir="right">&#9654;</div><div class="dbtn" data-dir="down">&#9660;</div></div>
     <button class="tbtn" id="btn-pause" data-action="pause">II</button>
     <button class="tbtn" id="btn-bomb" data-action="bomb">B</button>
     <button class="tbtn" id="btn-active" data-action="active">USE</button>

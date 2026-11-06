@@ -14,7 +14,7 @@ export function createSettingsMenu(settings, { onChange, onBack, onReset }) {
     { label: 'TEAR HIGHLIGHT', toggle: bind('tearHighlight') },
     { label: 'FOUND HUD', toggle: bind('foundHud') },
     { label: 'ITEM INFO', choice: bind('itemInfo'), options: [['name', 'NAME'], ['text', 'NAME+TEXT'], ['detailed', 'DETAILED']] },
-    { label: 'TOUCH AIM', choice: bind('freeAim'), options: [[false, '4-WAY'], [true, 'FREE']] },
+    { label: 'TOUCH AIM', choice: bind('freeAim'), options: [[false, '4-WAY'], [true, '8-WAY']] },
     { label: 'STICK SIZE', slider: bind('stickSize'), min: 80, max: 180, step: 10, fmt: (v) => `${v}` },
     { label: 'STICK OPACITY', slider: bind('stickOpacity'), min: 0.2, max: 1, step: 0.1, fmt: pct },
     { label: 'SHOW FPS', toggle: bind('showFps') },

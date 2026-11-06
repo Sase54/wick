@@ -40,8 +40,8 @@ export const DEFAULT_SETTINGS = {
   tearHighlight: true,   // enemy shots glow so they're easier to spot
   foundHud: true,        // stats on the left side of the screen
   itemInfo: 'text',      // 'name' | 'text' | 'detailed' (effect box near pedestals)
-  freeAim: false,        // touch: shoot in any direction instead of 4
-  stickSize: 120,        // touch joystick diameter in CSS px
+  freeAim: false,        // touch: the shooting pad also shoots diagonally (8 ways instead of 4)
+  stickSize: 120,        // touch move-stick diameter in CSS px
   stickOpacity: 0.6,
   showFps: false,
   unlockAll: false,      // testing: treat every unlockable as unlocked

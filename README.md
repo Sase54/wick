@@ -85,8 +85,8 @@ Sound starts after your first tap or key press. Browsers require that.
 
 | | PC | Phone |
 |---|---|---|
-| Move | **WASD** | Left thumb anywhere on the left half (a stick appears where you touch) |
-| Shoot | **Arrow keys** (4 directions) | Right thumb on the right half (4-way, or free aim in Settings) |
+| Move | **WASD** | Left thumb anywhere on the left half (a stick appears where you touch; any push is full speed) |
+| Shoot | **Arrow keys** (4 directions) | The 4-button pad bottom-right (slide between buttons; 8-way in Settings) |
 | Bomb | **E** | **B** button |
 | Use active item | **Space** | **USE** button |
 | Use pocket item (pill, card, rune, stone, or a character's pocket item) | **Q** | **PKT** button (shows when the pocket isn't empty) |
@@ -200,7 +200,7 @@ icons/                     app icons (regenerate with tools/make-icons.ps1)
 serve.ps1                  tiny local web server for Windows
 src/
   main.js                  boot: title screen <-> game, debug keys
-  engine/                  loop, canvas scaling, input, touch sticks, audio, music,
+  engine/                  loop, canvas scaling, input, touch stick and shooting pad, audio, music,
                            sprites (incl. Scale2x), pixel painter, RNG, pools, particles, storage
   game/                    game (rooms, combat, floors), player, health, character mechanics,
                            enemies, projectiles,

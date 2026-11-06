@@ -1351,5 +1351,5 @@ Music / sound volume, screen shake, tear highlight, Found HUD (stats on the left
 floor's live **deal chances**: a red horned icon with the chance of The Bargain and a pale haloed one
 with the chance of The Vigil after this floor's boss, from the same odds the door uses; see Deals),
 item info
-(name / name + text / detailed), touch aim (4-way / free), stick size and opacity, FPS counter,
+(name / name + text / detailed), touch aim (4-way / 8-way on the shooting pad), move-stick size and control opacity, FPS counter,
 unlock all, reset progress.

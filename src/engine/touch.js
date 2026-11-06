@@ -1,7 +1,10 @@
-// Floating twin-stick touch controls plus on-screen buttons.
-// Left half of the screen moves, right half shoots; each stick appears where the thumb lands.
-const DEAD_ZONE = 0.18;
-const SHOOT_THRESHOLD = 0.35;
+// Touch controls: a floating move stick plus a shooting pad and on-screen buttons.
+// The left half of the screen moves: the stick appears where the thumb lands and Wick goes at
+// full speed the moment the thumb leaves a tiny dead zone (how far you push only sets the
+// direction). Shooting is a pad of 4 buttons in the bottom-right corner; the thumb can slide
+// from one to the next. With "touch aim: 8-way" pressing between two buttons shoots diagonally.
+const DEAD_ZONE = 0.12;
+const PAD_DEAD = 12;   // px from the pad's center that count as no direction
 
 function makeStick(id) {
   const el = document.getElementById(id);
@@ -13,7 +16,9 @@ export class TouchControls {
     this.settings = settings;
     this.layer = document.getElementById('touch');
     this.move = makeStick('stick-move');
-    this.shoot = makeStick('stick-shoot');
+    // the shooting pad: a finger anywhere on it (or slid off it) aims by its angle from the center
+    this.pad = { el: document.getElementById('dpad'), pointer: null, x: 0, y: 0 };
+    this.padBtns = Object.fromEntries([...this.pad.el.querySelectorAll('.dbtn')].map((b) => [b.dataset.dir, b]));
     this.enabled = false;           // true once the player has touched the screen
     this.actions = [];              // queued button presses, drained by Input
     this.onTap = null;              // set by menus: (clientX, clientY) => void
@@ -31,6 +36,11 @@ export class TouchControls {
     this.layer.addEventListener('pointerup', (e) => this.up(e), opts);
     this.layer.addEventListener('pointercancel', (e) => this.up(e), opts);
     this.layer.addEventListener('lostpointercapture', (e) => this.up(e), opts);
+
+    const pe = this.pad.el;
+    pe.addEventListener('pointerdown', (e) => this.padDown(e), opts);
+    pe.addEventListener('pointermove', (e) => this.padMove(e), opts);
+    for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) pe.addEventListener(ev, (e) => this.padUp(e), opts);
 
     for (const btn of this.layer.querySelectorAll('.tbtn')) {
       const press = (e) => {
@@ -55,10 +65,9 @@ export class TouchControls {
 
   applySettings() {
     const { stickSize, stickOpacity } = this.settings;
-    for (const s of [this.move, this.shoot]) {
-      s.el.style.setProperty('--size', stickSize + 'px');
-      s.el.style.opacity = stickOpacity;
-    }
+    this.move.el.style.setProperty('--size', stickSize + 'px');
+    this.move.el.style.opacity = stickOpacity;
+    this.pad.el.style.opacity = stickOpacity;
     for (const btn of this.layer.querySelectorAll('.tbtn')) btn.style.opacity = stickOpacity;
   }
 
@@ -96,7 +105,8 @@ export class TouchControls {
       return;
     }
 
-    const stick = e.clientX < window.innerWidth / 2 ? this.move : this.shoot;
+    if (e.clientX >= window.innerWidth / 2) return;   // the right half has the pad and buttons
+    const stick = this.move;
     if (stick.pointer !== null) return;
     stick.pointer = e.pointerId;
     stick.ox = e.clientX;
@@ -142,7 +152,6 @@ export class TouchControls {
 
   stickFor(id) {
     if (this.move.pointer === id) return this.move;
-    if (this.shoot.pointer === id) return this.shoot;
     return null;
   }
 
@@ -163,33 +172,74 @@ export class TouchControls {
   releaseAll() {
     this.mapPointer = null;
     this.release(this.move);
-    this.release(this.shoot);
+    this.padRelease();
   }
 
-  // Analog movement vector, length 0..1, with a dead zone.
+  // Movement: full speed in the direction of the thumb once it leaves the dead zone.
   moveVector(out) {
     const { dx, dy } = this.move;
     const mag = Math.hypot(dx, dy);
     if (mag < DEAD_ZONE) { out.x = out.y = 0; return out; }
-    const k = Math.min(1, (mag - DEAD_ZONE) / (1 - DEAD_ZONE)) / mag;
-    out.x = dx * k;
-    out.y = dy * k;
+    out.x = dx / mag;
+    out.y = dy / mag;
     return out;
   }
 
-  // Unit shooting direction (snapped to 4 directions unless free aim is on), or zero.
-  shootVector(out) {
-    const { dx, dy } = this.shoot;
-    const mag = Math.hypot(dx, dy);
-    if (mag < SHOOT_THRESHOLD) { out.x = out.y = 0; return out; }
-    if (this.settings.freeAim) {
-      out.x = dx / mag;
-      out.y = dy / mag;
-    } else if (Math.abs(dx) > Math.abs(dy)) {
-      out.x = Math.sign(dx); out.y = 0;
-    } else {
-      out.x = 0; out.y = Math.sign(dy);
+  // ---- the shooting pad
+  padDown(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.setEnabled(true);
+    if (this.menuMode || this.pad.pointer !== null) return;
+    this.pad.pointer = e.pointerId;
+    try { this.pad.el.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+    this.padAim(e);
+  }
+
+  padMove(e) {
+    if (e.pointerId !== this.pad.pointer) return;
+    e.preventDefault();
+    e.stopPropagation();
+    this.padAim(e);
+  }
+
+  padUp(e) {
+    if (e.pointerId !== this.pad.pointer) return;
+    e.stopPropagation();
+    this.padRelease();
+  }
+
+  // Aim by the finger's angle from the pad's center: 4 ways, or 8 with free aim on.
+  padAim(e) {
+    const r = this.pad.el.getBoundingClientRect();
+    const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+    let x = 0, y = 0;
+    if (Math.hypot(dx, dy) >= PAD_DEAD) {
+      if (this.settings.freeAim) {
+        const a = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * (Math.PI / 4);
+        x = Math.round(Math.cos(a));
+        y = Math.round(Math.sin(a));
+      } else if (Math.abs(dx) > Math.abs(dy)) x = Math.sign(dx);
+      else y = Math.sign(dy);
     }
+    this.pad.x = x;
+    this.pad.y = y;
+    const lit = { left: x < 0, right: x > 0, up: y < 0, down: y > 0 };
+    for (const [dir, b] of Object.entries(this.padBtns)) b.classList.toggle('down', lit[dir]);
+  }
+
+  padRelease() {
+    this.pad.pointer = null;
+    this.pad.x = this.pad.y = 0;
+    for (const b of Object.values(this.padBtns)) b.classList.remove('down');
+  }
+
+  // Shooting direction from the pad (a diagonal is made unit length), or zero.
+  shootVector(out) {
+    const { x, y } = this.pad;
+    const k = x && y ? Math.SQRT1_2 : 1;
+    out.x = x * k;
+    out.y = y * k;
     return out;
   }
 }
