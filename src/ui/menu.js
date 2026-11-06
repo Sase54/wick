@@ -6,7 +6,7 @@
 //   { label, toggle: [get, set] }
 //   { label, choice: [get, set], options: [[value, text], ...] }
 //   { label, slider: [get, set], min, max, step, fmt(v) }
-import { drawText } from './text.js';
+import { drawText, measureText } from './text.js';
 import { INK, drawFlameCursor } from './wax.js';
 import { sfx } from '../engine/audio.js';
 
@@ -69,8 +69,11 @@ export class Menu {
     if (row < 0 || row >= this.items.length) return false;
     this.sel = row;
     const it = this.items[row];
-    if ((it.slider || it.choice) && vx > this.x + this.w * 0.45) {
-      this.adjust(vx < this.x + this.w * 0.72 ? -1 : 1);
+    if (it.slider || (it.choice && vx > this.x + this.w * 0.45)) {
+      // left of the middle of "< value >" goes down, right of it goes up
+      const right = this.x + this.w - 4;
+      const mid = right - measureText(`< ${this.valueText(it)} >`) / 2;
+      this.adjust(vx < mid ? -1 : 1);
     } else {
       this.activate();
     }

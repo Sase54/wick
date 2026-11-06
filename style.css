@@ -81,11 +81,11 @@ body.touch-mode.in-pause #btn-active { display: none; }
 
 /* the shooting pad: 4 buttons in a cross, bottom-right (the thumb can slide between them) */
 #dpad {
-  --b: 54px;
+  --b: 60px;
   position: absolute;
   display: none;
   right: calc(env(safe-area-inset-right, 0px) + 12px);
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 40px);
   width: calc(var(--b) * 3);
   height: calc(var(--b) * 3);
   touch-action: none;
@@ -99,7 +99,7 @@ body.touch-mode.in-pause #btn-active { display: none; }
   border: 2px solid rgba(232, 217, 176, 0.6);
   background: rgba(20, 14, 10, 0.45);
   color: #e8d9b0;
-  font: bold 18px monospace;
+  font: bold 20px monospace;
   line-height: calc(var(--b) - 4px);
   text-align: center;
   pointer-events: none;
@@ -125,17 +125,17 @@ body.touch-mode.in-pause #dpad,
 /* the action buttons sit in a row above the shooting pad */
 #btn-bomb {
   right: calc(env(safe-area-inset-right, 0px) + 12px);
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 186px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 226px);
 }
 #btn-active {
   right: calc(env(safe-area-inset-right, 0px) + 74px);
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 186px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 226px);
   font-size: 11px;
 }
 
 #btn-pocket {
   right: calc(env(safe-area-inset-right, 0px) + 136px);
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 186px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 226px);
   font-size: 11px;
 }
 /* the pocket button only shows when there's something in the pocket */
@@ -144,7 +144,7 @@ body.touch-mode.in-pause #btn-pocket { display: none; }
 /* SWAP: left of PKT, only while there's more than one thing in the pocket */
 #btn-switch {
   right: calc(env(safe-area-inset-right, 0px) + 198px);
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 193px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 233px);
   width: 40px;
   height: 40px;
   font-size: 9px;

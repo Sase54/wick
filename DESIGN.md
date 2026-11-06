@@ -1352,4 +1352,7 @@ floor's live **deal chances**: a red horned icon with the chance of The Bargain 
 with the chance of The Vigil after this floor's boss, from the same odds the door uses; see Deals),
 item info
 (name / name + text / detailed), touch aim (4-way / 8-way on the shooting pad), move-stick size and control opacity, FPS counter,
-unlock all, reset progress.
+unlock all, reset progress. Sliders and choices: tap left of the middle of `< value >` to go down, right of it to go up.
+
+**Phone layout (844x390):** the shooting pad is 3x60 px buttons in a cross, 40 px above the bottom-right corner;
+the action buttons (SWAP, PKT, USE, B) sit in a row above it, just under the minimap.
