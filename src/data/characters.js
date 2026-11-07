@@ -34,25 +34,25 @@ export const CHARACTERS = {
     name: 'BRICK', desc: 'A block candle. Slow to light, hard to put out.',
     special: 'SLOW, BIG HEALTH, HUGE HEAVY SHOTS.',
     health: { hearts: 5 }, bombs: 2,
-    stats: { damage: 1.5, fireRate: -0.7, speed: -0.2, shotSpeed: -0.1 }, shot: { sizeMul: 1.4, knockbackMul: 1.6 },
+    stats: { damageMul: 1.35, fireRate: -0.7, speed: -0.2, shotSpeed: -0.1 }, shot: { sizeMul: 1.4, knockbackMul: 1.6 },
   },
   vesper: {
     name: 'VESPER', desc: 'A chapel taper who sings to the dark.',
     special: 'ONLY ASH HEARTS. HER HYMNAL HURTS EVERYTHING.',
     health: { hearts: 0, ash: 6, eternal: 1, soulOnly: true },
-    stats: { damage: -0.3, range: 1 }, active: 'hymnal',
+    stats: { damageMul: 0.9, range: 1 }, active: 'hymnal',
   },
   cinder: {
     name: 'CINDER', desc: 'Burnt black. Smiles too wide.',
     special: 'SOOT HEARTS. HIS PACT MAKES HIM A FIEND.',
-    health: { hearts: 1, soot: 4 }, stats: { damage: 1, speed: 0.05 }, active: 'pact',
+    health: { hearts: 1, soot: 4 }, stats: { damageMul: 1.25, speed: 0.05 }, active: 'pact',
   },
   pilfer: {
     name: 'PILFER', desc: 'Light fingers, lighter conscience.',
     special: 'LUCKY HANDS: ENEMIES SOMETIMES DROP COINS. PAYS DEALS IN COINS.',
     dealPay: 'coins',
     health: { hearts: 2, golden: 1 }, coins: 10, keys: 1,
-    stats: { luck: 2, speed: 0.15, damage: -0.3 }, mechanics: { pickpocket: { chance: 0.12 } },
+    stats: { luck: 2, speed: 0.15, damageMul: 0.9 }, mechanics: { pickpocket: { chance: 0.12 } },
   },
   wisp: {
     name: 'WISP', desc: 'What is left when a candle goes out.',
@@ -63,8 +63,8 @@ export const CHARACTERS = {
   morrow: {
     name: 'MORROW', desc: 'Has been snuffed before. Got better.',
     special: 'COMES BACK ONCE AFTER DYING, STRONGER.',
-    health: { hearts: 3 }, stats: { damage: -0.25 },
-    mechanics: { revive: { name: 'MORROW, RELIT', look: 'morrowRelit', health: { hearts: 1, ash: 4 }, stats: { damage: 1.25, fireRate: 0.3 } } },
+    health: { hearts: 3 }, stats: { damageMul: 0.93 },
+    mechanics: { revive: { name: 'MORROW, RELIT', look: 'morrowRelit', health: { hearts: 1, ash: 4 }, stats: { damageMul: 1.35, fireRate: 0.3 } } },
   },
   nib: {
     name: 'NIB & NUB', desc: 'Two birthday candles who never blow out alone.',
@@ -85,7 +85,7 @@ export const CHARACTERS = {
     name: 'SEXTON', desc: 'Digs the graves. Keeps the shovel.',
     special: "CAN'T SHOOT: SWINGS A SHOVEL. RIBCAGE HEARTS.",
     health: { hearts: 0, bones: 2, boneFill: 2, ash: 2, boneOnly: true },
-    stats: { speed: -0.1, damage: 0.5 }, shot: { weapon: 'sword', weaponArt: 'shovel' },
+    stats: { speed: -0.1, damageMul: 1.15 }, shot: { weapon: 'sword', weaponArt: 'shovel' },
   },
   spill: {
     name: 'SPILL', desc: 'Melts everywhere. Apologizes constantly.',
@@ -95,17 +95,17 @@ export const CHARACTERS = {
   kiln: {
     name: 'KILN', desc: 'A candle baked in a clay pot.',
     special: 'HEATS UP WHILE SHOOTING: HOTTER HITS HARDER. TOO HOT AND HE ERUPTS.',
-    health: { hearts: 3 }, stats: { damage: -0.5 }, mechanics: { heat: {} },
+    health: { hearts: 3 }, stats: { damageMul: 0.85 }, mechanics: { heat: {} },
   },
   echo: {
     name: 'ECHO', desc: 'Rings like a bell. Hears things twice.',
     special: 'EVERY SHOT RINGS AGAIN A MOMENT LATER.',
-    health: { hearts: 2, ash: 2 }, stats: { damage: -0.4 }, mechanics: { echo: { delay: 0.35, mul: 0.6 } },
+    health: { hearts: 2, ash: 2 }, stats: { damageMul: 0.9 }, mechanics: { echo: { delay: 0.35, mul: 0.6 } },
   },
   beacon: {
     name: 'BEACON', desc: 'A lighthouse candle. Never lets anyone sit in the dark.',
     special: 'PLANTS LITTLE CANDLES THAT SHOOT FOR HER.',
-    health: { hearts: 3 }, stats: { damage: -0.5 }, pocket: 'sparecandle',
+    health: { hearts: 3 }, stats: { damageMul: 0.85 }, pocket: 'sparecandle',
   },
 
   // ================================================================ TWISTED
@@ -122,18 +122,18 @@ export const CHARACTERS = {
   brick_t: {
     name: 'BRICK, CRUMBLED', desc: 'Falling apart, one brick at a time.',
     special: 'CRUMBLES DURING FIGHTS. ENEMIES DROP FADING HEARTS.',
-    health: { hearts: 8, red: 12 }, stats: { damage: 2, fireRate: -0.6, speed: -0.25 }, shot: { sizeMul: 1.5 },
+    health: { hearts: 8, red: 12 }, stats: { damageMul: 1.35, fireRate: -0.6, speed: -0.25 }, shot: { sizeMul: 1.5 },
     mechanics: { drain: { every: 12, drop: 0.25 } },
   },
   vesper_t: {
     name: 'VESPER, UNSUNG', desc: 'Her hymn went quiet. Something else sings now.',
     special: 'HER HYMNAL COSTS HALF AN ASH HEART AND CALLS WISPS.',
-    health: { hearts: 0, ash: 8, soulOnly: true }, stats: { damage: -0.5 }, active: 'blackhymnal',
+    health: { hearts: 0, ash: 8, soulOnly: true }, stats: { damageMul: 0.85 }, active: 'blackhymnal',
   },
   cinder_t: {
     name: 'CINDER, SMOTHERED', desc: 'More smoke than candle.',
     special: 'DASHES THROUGH ENEMIES AS SMOKE. TWO MELTED HEARTS.',
-    health: { hearts: 0, soot: 4, broken: 2 }, stats: { damage: 1.5, speed: 0.1 }, pocket: 'shadowdash',
+    health: { hearts: 0, soot: 4, broken: 2 }, stats: { damageMul: 1.35, speed: 0.1 }, pocket: 'shadowdash',
   },
   pilfer_t: {
     name: 'PILFER, PAWNED', desc: 'Sold everything. Kept the habit.',
@@ -145,7 +145,7 @@ export const CHARACTERS = {
     name: 'WISP, FADED', desc: 'Barely there at all.',
     special: 'ONE HIT. NO WINGS. A VEIL YOU HAVE TO EARN.',
     health: { oneHit: true }, shot: { spectral: true, pierce: true, style: 'ghost' },
-    stats: { damage: -0.5, speed: 0.2, fireRate: 0.5 }, pocket: 'paleveil',
+    stats: { damageMul: 0.85, speed: 0.2, fireRate: 0.5 }, pocket: 'paleveil',
   },
   morrow_t: {
     name: 'MORROW, TWOFOLD', desc: 'Half alive, half not. Takes turns.',
@@ -153,15 +153,15 @@ export const CHARACTERS = {
     health: { hearts: 3 },
     mechanics: {
       forms: {
-        dawn: { name: 'DAWN', look: 'morrow_t', stats: { fireRate: 0.8, damage: -0.6, speed: 0.1 } },
-        dusk: { name: 'DUSK', look: 'morrow_t2', stats: { damage: 1.5, fireRate: -0.5 }, flying: true, health: { hearts: 1, soot: 4 } },
+        dawn: { name: 'DAWN', look: 'morrow_t', stats: { fireRate: 0.8, damageMul: 0.8, speed: 0.1 } },
+        dusk: { name: 'DUSK', look: 'morrow_t2', stats: { damageMul: 1.35, fireRate: -0.5 }, flying: true, health: { hearts: 1, soot: 4 } },
       },
     },
   },
   nib_t: {
     name: 'NIB, ALONE', desc: 'Nub went somewhere dark. Now Nub is the dark.',
     special: 'THE SHADOW OF NUB HUNTS YOU, AND ANYTHING IN ITS WAY.',
-    health: { hearts: 3 }, stats: { damage: 0.5 }, mechanics: { stalker: {} },
+    health: { hearts: 3 }, stats: { damageMul: 1.15 }, mechanics: { stalker: {} },
   },
   prism_t: {
     name: 'PRISM, SPLINTERED', desc: 'Cracked glass. Light leaks out of everything.',

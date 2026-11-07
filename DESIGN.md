@@ -99,6 +99,24 @@ there and the game follows; nothing else needs editing. Sections are added as th
 - **Touch**: the shooting pad shoots in **4 directions** like Isaac by default; Settings > TOUCH AIM
   > 8-WAY allows diagonals.
 
+### 4. Stats and damage (`TUNING.damage`, `TUNING.hud`)
+
+- **Damage** uses Isaac's formula: `damage = (3.5 · sqrt(1 + damageUps · 1.2) + flatDamage) · multipliers`.
+  Every "+damage" on items, pills and trinkets is a **damage up** and adds to `damageUps`, so each
+  one is worth a bit less than the last: 3.50 at the start, 5.19 with one up, 6.45 with two.
+  A negative total (damage downs) comes off **flat** after the square root, so stacking downs can't
+  reach 0 (the floor is 0.5). Item stat `flatDamage` adds after the root; every `damageMul`
+  (the character's, items') multiplies the result.
+- **Characters** never add damage, they only multiply it: most are x1.0, the rest are between
+  **x0.75** (Nib & Nub) and **x1.35** (Brick). The character table above lists each one.
+- **Luck** starts at 0 and raises chances everywhere, always capped: shot effects
+  (`base + luck · per-luck`, up to the effect's cap), room clear rewards, which items chests give,
+  machine and beggar payouts, and pickup rolls.
+- **Stats sidebar** (Settings > FOUND HUD, on by default): speed, fire rate (shots per second,
+  2 decimals), damage (2 decimals), range, shot speed and luck, then this floor's devil and angel
+  chances. When a stat changes, a small bobbing **green up arrow** or **red down arrow** shows next to
+  it with the change (`+0.57`) for **3 s** (`TUNING.hud.statArrowTime`), fading out at the end.
+
 ---
 
 ## HEARTS
@@ -130,7 +148,7 @@ You die when nothing is left (no blood, no extra hearts, no Vigil heart).
 
 Base stats (`src/game/stats.js`): damage 3.50, fire rate 2.73 shots/s (tears stat 0), range 6.5
 tiles, shot speed 1.00, speed 1.00, luck 0. Characters add to these (`x` multiplies); a character
-or item's "fire rate +n" adds n to the **tears stat**, see FEEL AND TUNING section 3.
+or item's "fire rate +n" adds n to the **tears stat**, see FEEL AND TUNING section 3. Character damage is only ever a multiplier (x0.75 to x1.35, section 4).
 Data: `src/data/characters.js`; looks: `src/data/characterSprites.js`; unique rules:
 `src/game/mechanics.js`. Only Wick is unlocked at first. Pick on the **character select**
 screen (NEW RUN / SEEDED RUN): left/right or swipe to browse, up/down or the TWISTED tab for the
@@ -146,20 +164,20 @@ Some actives recharge over time (*timed*) or cost health instead of charge.
 |---|---|---|---|---|---|---|
 | **WICK** (`wick`) | cream stub, orange flame | 3 blood | 1 bomb | base | a good place to start | from the start |
 | **PIP** (`pip`) | tea light in a tin cup | 3 blood | 3 coins, pocket **Loaded Die** | luck +1 | Loaded Die (3 rooms) rerolls every item in the room | LUCK OF THE DRAW: use active items 15 times |
-| **BRICK** (`brick`) | wide brick-patterned block | 5 blood | 2 bombs | dmg +1.5, rate -0.7, speed -0.2, shot spd -0.1; x1.4 shot size, x1.6 knockback | slow tank, huge shots | HEAVY HITTER: defeat 5 bosses |
-| **VESPER** (`vesper`) | thin chapel taper in a lace veil, pale flame | 3 ash + 1 vigil | **Ashen Hymnal** | dmg -0.3, range +1 | only Ash Hearts (containers become Ash). Hymnal (3 rooms): 18+dmg to every enemy, +half Ash Heart | EVENSONG: reach chapter 3 |
-| **CINDER** (`cinder`) | charred, jagged, ember cracks, horns, red flame | 1 blood + 2 soot | **Cinder Pact** | dmg +1, speed +0.05 | Pact (3 rooms): fiend form 10 s: +2 dmg, burning shots, flight | INTO THE FURNACE: reach chapter 4 |
-| **PILFER** (`pilfer`) | grey-green, bandit mask, loot sack | 2 blood (1 brass) | 10 coins, 1 key | luck +2, speed +0.15, dmg -0.3 | enemies drop a coin 12% (+1%/luck) of the time | BIG SPENDER: buy 15 things in shops |
+| **BRICK** (`brick`) | wide brick-patterned block | 5 blood | 2 bombs | dmg x1.35, rate -0.7, speed -0.2, shot spd -0.1; x1.4 shot size, x1.6 knockback | slow tank, huge shots | HEAVY HITTER: defeat 5 bosses |
+| **VESPER** (`vesper`) | thin chapel taper in a lace veil, pale flame | 3 ash + 1 vigil | **Ashen Hymnal** | dmg x0.9, range +1 | only Ash Hearts (containers become Ash). Hymnal (3 rooms): 18+dmg to every enemy, +half Ash Heart | EVENSONG: reach chapter 3 |
+| **CINDER** (`cinder`) | charred, jagged, ember cracks, horns, red flame | 1 blood + 2 soot | **Cinder Pact** | dmg x1.25, speed +0.05 | Pact (3 rooms): fiend form 10 s: +2 dmg, burning shots, flight | INTO THE FURNACE: reach chapter 4 |
+| **PILFER** (`pilfer`) | grey-green, bandit mask, loot sack | 2 blood (1 brass) | 10 coins, 1 key | luck +2, speed +0.15, dmg x0.9 | enemies drop a coin 12% (+1%/luck) of the time | BIG SPENDER: buy 15 things in shops |
 | **WISP** (`wisp`) | see-through blue ghost, no feet | none (one hit) | | speed +0.1; flight, spectral shots | dies in one hit; a ward blocks the first hit in every room | UNTOUCHED: finish a floor without taking damage |
-| **MORROW** (`morrow`) | grey-green with bandage stripes | 3 blood | | dmg -0.25 | dies once and comes back as **MORROW, RELIT** (gold-sealed cracks, 1 blood + 2 ash, dmg +1.25, rate +0.3) | RELIT AGAIN: die 10 times |
+| **MORROW** (`morrow`) | grey-green with bandage stripes | 3 blood | | dmg x0.93 | dies once and comes back as **MORROW, RELIT** (gold-sealed cracks, 1 blood + 2 ash, dmg x1.35, rate +0.3) | RELIT AGAIN: die 10 times |
 | **NIB & NUB** (`nib`) | two striped birthday candles | 2 blood + 1 ash | | dmg x0.75 each | two candles move and shoot together; both can be hit; shared hearts | ENCORE: escape the cellar twice |
 | **PRISM** (`prism`) | glass-cyan with facets and a monocle, violet flame | 2 blood + 1 ash | | rate -0.3 | can't shoot wax: hold to charge, release a piercing beam (5 ticks of 0.75x dmg) | WAX MASSACRE: snuff out 500 enemies |
 | **MOTLEY** (`motley`) | patchwork, new colors each run | random | random: 2 passives, maybe an active | random | random health, stats, items and colors, all from the seed | PATCHWORK: escape with 3 different characters |
-| **SEXTON** (`sexton`) | drippy tallow, gravedigger cap | 2 full ribcages + 1 ash | | speed -0.1, dmg +0.5 | can't shoot: swings a shovel (3x dmg in an arc, knocks away enemy shots). Containers become Ribcages | GRAVEDIGGER: break 10 marked rocks |
+| **SEXTON** (`sexton`) | drippy tallow, gravedigger cap | 2 full ribcages + 1 ash | | speed -0.1, dmg x1.15 | can't shoot: swings a shovel (3x dmg in an arc, knocks away enemy shots). Containers become Ribcages | GRAVEDIGGER: break 10 marked rocks |
 | **SPILL** (`spill`) | very melted, wax puddle at the base | 3 blood | | rate -0.4, speed +0.1 | leaves a trail of hot wax that burns and slows enemies standing in it | STILL MELTING: start 15 runs |
-| **KILN** (`kiln`) | candle in a terracotta pot with glowing vents, hot blue flame | 3 blood | | dmg -0.5 | shooting builds heat (up to +90% dmg); at full heat he erupts (12 burning shots) and must cool 1.2 s | FIRED CLAY: defeat The Old Boiler |
-| **ECHO** (`echo`) | lavender with ring marks and a bell | 2 blood + 1 ash | | dmg -0.4 | every volley rings again 0.35 s later from where you stood (60% dmg) | THE MOTH'S BELL: defeat the Moth Queen |
-| **BEACON** (`beacon`) | red/white lighthouse bands, glass lamp | 3 blood | pocket **Spare Candle** | dmg -0.5 | Spare Candle (1 room): plant a candle that shoots enemies this room (max 3) | LIGHT KEEPER: pick up 40 different items |
+| **KILN** (`kiln`) | candle in a terracotta pot with glowing vents, hot blue flame | 3 blood | | dmg x0.85 | shooting builds heat (up to +90% dmg); at full heat he erupts (12 burning shots) and must cool 1.2 s | FIRED CLAY: defeat The Old Boiler |
+| **ECHO** (`echo`) | lavender with ring marks and a bell | 2 blood + 1 ash | | dmg x0.9 | every volley rings again 0.35 s later from where you stood (60% dmg) | THE MOTH'S BELL: defeat the Moth Queen |
+| **BEACON** (`beacon`) | red/white lighthouse bands, glass lamp | 3 blood | pocket **Spare Candle** | dmg x0.85 | Spare Candle (1 room): plant a candle that shoots enemies this room (max 3) | LIGHT KEEPER: pick up 40 different items |
 
 ### Twisted characters (16)
 
@@ -170,13 +188,13 @@ that secret arrives in part 7. **Placeholder until then: reach chapter 3 with th
 |---|---|---|---|---|
 | **WICK, HOLLOW** (`wick_t`) | grey-blue, cracked, hollow eyes, void flame | 3 blood | | only 6 items: a 7th pushes the oldest back onto the pedestal |
 | **PIP, LOADED** (`pip_t`) | sickly wax, rusted cup, red eyes | 2 blood + 1 ash | luck +2 | every free item pedestal flickers between two items; you get whichever is showing |
-| **BRICK, CRUMBLED** (`brick_t`) | dark, broken top, cracks | 8 containers, 6 full | dmg +2, rate -0.6, speed -0.25, x1.5 shot size | loses half a heart every 12 s in fights; enemies drop half hearts that fade after 4 s (25%) |
-| **VESPER, UNSUNG** (`vesper_t`) | dark taper, purple veil, void flame | 4 ash | **Unsung Hymnal**, dmg -0.5 | Hymnal costs half a heart (never the last): 3 wisps orbit you and block 2 shots each |
-| **CINDER, SMOTHERED** (`cinder_t`) | blacker, one broken horn | 2 soot + 2 melted | pocket **Smother Step**, dmg +1.5, speed +0.1 | Smother Step (timed 2.5 s): dash as smoke, untouchable, 3x dmg to everything passed |
+| **BRICK, CRUMBLED** (`brick_t`) | dark, broken top, cracks | 8 containers, 6 full | dmg x1.35, rate -0.6, speed -0.25, x1.5 shot size | loses half a heart every 12 s in fights; enemies drop half hearts that fade after 4 s (25%) |
+| **VESPER, UNSUNG** (`vesper_t`) | dark taper, purple veil, void flame | 4 ash | **Unsung Hymnal**, dmg x0.85 | Hymnal costs half a heart (never the last): 3 wisps orbit you and block 2 shots each |
+| **CINDER, SMOTHERED** (`cinder_t`) | blacker, one broken horn | 2 soot + 2 melted | pocket **Smother Step**, dmg x1.35, speed +0.1 | Smother Step (timed 2.5 s): dash as smoke, untouchable, 3x dmg to everything passed |
 | **PILFER, PAWNED** (`pilfer_t`) | gold wax, mask, sack | 2 blood, both brass | 15 coins, Gnawed Rabbit's Foot, luck +3, speed +0.2 | touching an item breaks it into 2 + 2x quality pickups |
-| **WISP, FADED** (`wisp_t`) | dark ghost, blindfold | none (one hit) | pocket **Pale Veil**; dmg -0.5, speed +0.2, rate +0.5; spectral + piercing | one hit, no flight; Pale Veil (2 rooms) blocks the next hit |
-| **MORROW, TWOFOLD** (`morrow_t`) | half dead / half alive | Dawn: 3 blood; Dusk: 1 blood + 2 soot | | swaps form every cleared room, each with its own hearts. Dawn: rate +0.8, dmg -0.6, speed +0.1. Dusk: dmg +1.5, rate -0.5, flight |
-| **NIB, ALONE** (`nib_t`) | grey with black stripes | 3 blood | dmg +0.5 | the Shadow of Nub hunts you in every fight: can't be hurt, charges every few seconds (telegraphed), hurts you for a full heart and tramples enemies too |
+| **WISP, FADED** (`wisp_t`) | dark ghost, blindfold | none (one hit) | pocket **Pale Veil**; dmg x0.85, speed +0.2, rate +0.5; spectral + piercing | one hit, no flight; Pale Veil (2 rooms) blocks the next hit |
+| **MORROW, TWOFOLD** (`morrow_t`) | half dead / half alive | Dawn: 3 blood; Dusk: 1 blood + 2 soot | | swaps form every cleared room, each with its own hearts. Dawn: rate +0.8, dmg x0.8, speed +0.1. Dusk: dmg x1.35, rate -0.5, flight |
+| **NIB, ALONE** (`nib_t`) | grey with black stripes | 3 blood | dmg x1.15 | the Shadow of Nub hunts you in every fight: can't be hurt, charges every few seconds (telegraphed), hurts you for a full heart and tramples enemies too |
 | **PRISM, SPLINTERED** (`prism_t`) | cracked rose glass | 2 blood + 1 ash | | a steady beam while you hold shoot; 60% move speed while firing |
 | **MOTLEY, UNSTITCHED** (`motley_t`) | darker patchwork with a seam | random | random | random start, and every hit rerolls all your items and stats |
 | **SEXTON, UNEARTHED** (`sexton_t`) | bone-white, cracked, hollow eyes | 3 ribcages (half full) | speed +0.05 | throws the shovel; it flies out and back (2.5x dmg each way). One at a time |

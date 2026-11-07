@@ -6,6 +6,7 @@ import {
   BRASS_RIM, VIGIL_MARK, ribHeart, halfOf,
 } from '../data/pickupSprites.js';
 import { MECHANICS } from '../game/mechanics.js';
+import { TUNING } from '../data/tuning.js';
 import { drawText, wrapText, measureText } from './text.js';
 import { drawMinimap, drawBigMap } from './minimap.js';
 import { VIEW_W, VIEW_H } from '../engine/canvas.js';
@@ -173,6 +174,18 @@ function drawMechanics(ctx, game, x, y) {
   return h;
 }
 
+// A small arrow (7x6 plus an outline) pointing up or down, for stat changes.
+function drawStatArrow(ctx, x, y, up, color) {
+  const rows = up ? [1, 3, 5, 7, 3, 3] : [3, 3, 7, 5, 3, 1];
+  const line = (i, w) => ctx.fillRect(x + 3 - (w >> 1), y + i, w, 1);
+  ctx.fillStyle = '#160f0c';
+  rows.forEach((w, i) => line(i, w + 2));
+  line(-1, up ? 1 : 5);
+  line(rows.length, up ? 5 : 1);
+  ctx.fillStyle = color;
+  rows.forEach((w, i) => line(i, w));
+}
+
 // Found HUD: stats down the left side, with a +/- flash when one changes.
 function drawStats(ctx, game, x, y) {
   const p = game.player;
@@ -190,9 +203,15 @@ function drawStats(ctx, game, x, y) {
     const w = drawText(ctx, formatStat(k, p.stats[k]), x + 16, ry + 4, { color: '#d8c69a' });
     ctx.globalAlpha = 1;
     const d = hud.deltas[k];
-    if (d && game.time - d.t < 2.5) {
-      const txt = `${d.v > 0 ? '+' : ''}${formatStat(k, d.v)}`;
-      drawText(ctx, txt, x + 20 + w, ry + 4, { color: d.v > 0 ? '#9ccf6a' : '#d6453a' });
+    const age = d ? game.time - d.t : 99, show = TUNING.hud.statArrowTime;
+    if (age < show) {
+      // a green arrow up or a red arrow down (bobbing), then how much it changed; fades at the end
+      ctx.globalAlpha = Math.min(1, (show - age) / 0.5);
+      const up = d.v > 0, col = up ? '#9ccf6a' : '#d6453a';
+      const ax = x + 19 + w, ay = ry + 3 + (Math.floor(game.time * 4) % 2) * (up ? -1 : 1);
+      drawStatArrow(ctx, ax, ay, up, col);
+      drawText(ctx, `${up ? '+' : ''}${formatStat(k, d.v)}`, ax + 9, ry + 4, { color: col });
+      ctx.globalAlpha = 1;
     }
   });
   // this floor's odds of a deal door after the boss, live (src/game/specials.js dealOdds)

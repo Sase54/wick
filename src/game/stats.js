@@ -2,7 +2,7 @@
 // holds the starting values and limits.
 import { TUNING } from '../data/tuning.js';
 export const BASE_STATS = {
-  damage: 3.5,
+  damage: TUNING.damage.base,   // before damage ups (see items.js computeLoadout)
   fireRate: 30 / 11, // shots per second (worked out from the tears stat, see tearDelay)
   range: TUNING.tears.range,   // tiles a shot travels before dropping
   shotSpeed: 1.0,

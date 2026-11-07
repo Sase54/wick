@@ -194,6 +194,13 @@ export function computeLoadout(player) {
   stats.tears = add.fireRate ?? 0;
   stats.tearDelay = tearDelay(stats.tears) + (add.tearDelay ?? 0);
   stats.fireRate = (TUNING.tears.framesPerSecond / (Math.max(0, stats.tearDelay) + 1)) * (mul.fireRate ?? 1);
+  // damage, Isaac's formula: "+damage" on items counts as damage ups, each one worth a bit less
+  // than the last; flatDamage adds after that; every multiplier (the character's, items') last
+  const DM = TUNING.damage;
+  stats.damageUps = add.damage ?? 0;
+  // damage downs (a negative total) come off flat, as in Isaac, so stacking them never hits 0
+  const ups = Math.max(0, stats.damageUps), downs = Math.min(0, stats.damageUps);
+  stats.damage = (DM.base * Math.sqrt(1 + ups * DM.upFactor) + downs + (add.flatDamage ?? 0)) * (mul.damage ?? 1);
   clampStats(stats);
   shot.style = SHOT_STYLE_PRIORITY.find((s) => styles.has(s)) || 'wax';
   // the first form in FORM_PRIORITY wins; barrage and lobbed change whatever form it is

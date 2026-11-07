@@ -89,4 +89,15 @@ export const TUNING = {
     hitFlashWhite: 0.06,    // an enemy hit flashes white...
     hitFlashRed: 0.1,       // ...then red
   },
+
+  // ---- 4. Stats and damage
+  damage: {
+    // damage = (base * sqrt(1 + damageUps * upFactor) + flatDamage) * multipliers
+    // "+damage" on items is damage ups; characters only have multipliers (0.75 .. 1.35)
+    base: 3.5,
+    upFactor: 1.2,
+  },
+  hud: {
+    statArrowTime: 3,       // seconds a green up / red down arrow shows next to a stat that changed
+  },
 };
