@@ -27,6 +27,9 @@ const WIND_GLOW = makeGlow(20, 'rgba(255,40,20,0.7)');
 // Art: frames are painted on demand and cached (per art, state, direction, frame and tint).
 // ---------------------------------------------------------------------------
 const frameCache = new Map();
+// A still picture of an enemy (the death screen shows what got you).
+export function enemyPicture(artKey) { return paintFrame(artKey, 'idle', 'down', 0); }
+
 function paintFrame(key, state, dir, f) {
   const k = `${key}|${state}|${dir}|${f}`;
   let c = frameCache.get(k);

@@ -1,5 +1,6 @@
 // Player stats. Items modify these through data (src/data/items.js); this file only
 // holds the starting values and limits.
+import { TUNING } from '../data/tuning.js';
 export const BASE_STATS = {
   damage: 3.5,
   fireRate: 2.5,     // shots per second
@@ -14,7 +15,7 @@ export const STAT_LIMITS = {
   fireRate: [0.5, 15],
   range: [2, 20],
   shotSpeed: [0.6, 2.5],
-  speed: [0.5, 2.0],
+  speed: [TUNING.player.speedMin, TUNING.player.speedMax],
   luck: [-5, 15],
 };
 

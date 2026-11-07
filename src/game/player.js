@@ -12,6 +12,7 @@ import { MECHANICS } from './mechanics.js';
 import { updateWeapon, renderWeapon, burst } from './weapons.js';
 import { sfx } from '../engine/audio.js';
 import { TILE, MOVE_SPEED_PX, SHOT_SPEED_PX } from './constants.js';
+import { TUNING } from '../data/tuning.js';
 
 // ---------------------------------------------------------------------------
 // Art, cached per look (character body + colors + flame + item tint).
@@ -37,7 +38,7 @@ export function lookArt(look = {}) {
   const L = LOOKS[id];
   const body = bodyFor(id);
   const colors = { ...COLORS, ...(L.colors || {}), ...(look.colors || {}) };
-  A = { faces: {}, wickY: body.wickY };
+  A = { faces: {}, wickY: body.wickY, colors };
   for (const name of Object.keys(WICK_FACES)) {
     let right = buildSprite(body.rows, colors, WICK_FACES[name]);
     if (look.bodyTint) right = tint(right, look.bodyTint, 0.4);
@@ -71,11 +72,11 @@ const PORTRAITS = new Map();
 export function characterPortrait(id) {
   let c = PORTRAITS.get(id);
   if (!c) {
-    const p = new Player(12, 30, CHARACTERS[id] || CHARACTERS[DEFAULT_CHARACTER], id);
+    const p = new Player(12, 32, CHARACTERS[id] || CHARACTERS[DEFAULT_CHARACTER], id);
     c = document.createElement('canvas');
     c.width = 24;
     c.height = 34;
-    p.drawCandle(c.getContext('2d'), p.look, 12, 30, 0, 0, { flare: false });
+    p.drawCandle(c.getContext('2d'), p.look, 12, 32, 0, 0, { flare: false });
     PORTRAITS.set(id, c);
   }
   return c;
@@ -258,12 +259,14 @@ export class Player {
       }
       if (Math.random() < dt * 40) game.particles.spawn(this.x, this.y - 4, { z: 6, vz: 10, life: 0.4, color: '#2a2226', size: 2 });
     } else {
+      // Isaac-like: full speed in ~0.1 s, a short slide (~0.15 s) after letting go
+      const P = TUNING.player;
       const tx = mv.x * this.moveSpeed, ty = mv.y * this.moveSpeed;
-      const k = Math.min(1, (moving ? 18 : 12) * this.accelMul * dt);
-      this.vx += (tx - this.vx) * k;
-      this.vy += (ty - this.vy) * k;
-      if (Math.abs(this.vx) < 0.5 && !moving) this.vx = 0;
-      if (Math.abs(this.vy) < 0.5 && !moving) this.vy = 0;
+      const top = Math.max(1, this.moveSpeed);
+      const step = (moving ? top / P.accelTime : top / P.slideTime) * this.accelMul * dt;
+      const dvx = tx - this.vx, dvy = ty - this.vy, dl = Math.hypot(dvx, dvy);
+      if (dl <= step) { this.vx = tx; this.vy = ty; }
+      else { this.vx += (dvx / dl) * step; this.vy += (dvy / dl) * step; }
     }
     moveCircle(this, this.vx * dt, this.vy * dt, game.room, this.flying ? 'fly' : 'walk');
 
@@ -275,6 +278,11 @@ export class Player {
     if (this.danceT > 0) { this.charging = false; return; }
     const sh = input.shoot;
     const shooting = sh.x !== 0 || sh.y !== 0;
+    // the body faces where Wick walks; the head where he shoots (else where he walks, and after a
+    // moment standing still it looks back down at you)
+    if (moving) this.bodyDir = Math.abs(mv.x) > Math.abs(mv.y) ? (mv.x > 0 ? 'right' : 'left') : (mv.y < 0 ? 'up' : 'down');
+    else if (spd < 20) this.bodyDir = 'down';
+    this.idleT = moving || shooting ? 0 : (this.idleT || 0) + dt;
     if (shooting) {
       this.head.x = sh.x;
       this.head.y = sh.y;
@@ -283,6 +291,9 @@ export class Player {
     } else if (moving) {
       this.head.x = mv.x;
       this.head.y = mv.y;
+    } else if (this.idleT > TUNING.player.headIdle) {
+      this.head.x = 0;
+      this.head.y = 1;
     }
 
     // Some characters don't attack at all for a while (heat, nothing); the rest use their weapon
@@ -314,6 +325,7 @@ export class Player {
     const style = opt.style || (fiend ? 'ember' : sh.style);
     const lob = sh.lobbed && !opt.bomb;
     this.shotSide = -this.shotSide;
+    const eye = TUNING.player.eyeOffset;
 
     const emitters = opt.from ? [opt.from] : [this, ...game.familiars.filter((f) => f.def.variant === 'twin' || f.mimic)];
     for (const em of emitters) {
@@ -327,9 +339,9 @@ export class Player {
         const crit = !!roll.crit;
         const dmg = (isMe ? damage : damage * 0.75) * (crit ? 3 : 1);
         game.projectiles.spawn({
-          x: em.x + cx * 5 - cy * 3 * side,
-          y: em.y + cy * 3 + cx * 3 * side + 2,
-          z: opt.bomb ? 4 : 16,
+          x: em.x + cx * 5 - cy * eye * side,
+          y: em.y + cy * 3 + cx * eye * side + 2,
+          z: opt.bomb ? 4 : TUNING.player.eyeHeight,
           vx: cx * speed * sp + (moving ? this.vx * 0.35 : 0),
           vy: cy * speed * sp + (moving ? this.vy * 0.35 : 0),
           r: Math.max(3, Math.round(((isMe ? r : Math.max(3, r - 1)) + (crit ? 2 : 0)) * sz)),
@@ -361,6 +373,7 @@ export class Player {
     }
     if (!opt.quiet) {
       this.flareTime = 0.09;
+      this.lastShotAt = this.time;   // the head squashes
       sfx(opt.bomb ? 'swing' : 'shoot');
       this.shootingTime = Math.min(0.18, 0.6 / s.fireRate);
     }
@@ -395,16 +408,18 @@ export class Player {
     game.stats.damageTaken += amount;
     game.floorDamage = (game.floorDamage || 0) + amount;
 
-    this.invuln = 1.0;
+    const P = TUNING.player;
+    this.invuln = amount >= 2 ? P.invulnFull : P.invuln;
     this.flash = 0.08;
-    this.hurtTime = 0.4;
+    this.hurtTime = P.flinch;
     let dx = this.x - fromX, dy = this.y - fromY;
     const len = Math.hypot(dx, dy);
     if (len < 0.01) { dx = 0; dy = 1; } else { dx /= len; dy /= len; }
-    this.vx += dx * 150;
-    this.vy += dy * 150;
-    game.shake(5);
-    game.hurtFlash = 0.18;
+    this.hurtDir = { x: dx, y: dy };
+    this.vx += dx * P.knockback;
+    this.vy += dy * P.knockback;
+    game.shake(P.hurtShake);
+    game.hurtFlash = P.hurtFlash;
     sfx('hurt');
     game.particles.burst(this.x, this.y, 8, { colors: [COLORS.w, COLORS.W, COLORS.d], speed: 60, z: 10, vz: 60 });
     this.heartEffects(ev, game);
@@ -435,15 +450,27 @@ export class Player {
     if (this.runMech('preventDeath', game)) return;
     this.dead = true;
     this.killedBy = source;
+    this.killerPic = game.killerPicture?.(source) || null;   // shown on the death screen
     game.onPlayerDeath();
   }
 
-  // Wick melts into a puddle and his flame goes out. k goes 0 -> 1.
+  // Wick melts into a puddle and his flame goes out. k goes 0 -> 1. The little body sinks into the
+  // puddle first, then the head slumps down after it.
   renderDeath(ctx, ox, oy, k) {
     const a = lookArt(this.look);
     const melt = Math.min(1, k * 1.25);
     const cx = Math.round(this.x + ox), base = Math.round(this.y + 3 + oy);
     const pw = 10 + Math.round(melt * 16), ph = 3 + Math.round(melt * 3);
+    const legs = !this.look.noFeet;
+    const sink = legs ? Math.round(Math.max(0, 1 - melt / 0.4) * 8) : 0;   // how much body still shows
+    if (legs && sink > 0) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(cx - 12, base - ph - 12, 24, 12);
+      ctx.clip();
+      this.drawBody(ctx, a, cx, base - ph + 1 + (8 - sink), 'down', -1);
+      ctx.restore();
+    }
     for (let i = 0; i < ph; i++) {
       const t = (i + 0.5 - ph / 2) / (ph / 2);
       const half = Math.round((pw / 2) * Math.sqrt(1 - t * t));
@@ -453,12 +480,13 @@ export class Player {
     const body = a.faces.hurt.right;
     const h = Math.max(1, Math.round(16 * (1 - melt * 0.9)));
     const w = 18 + Math.round(melt * 6);
-    ctx.drawImage(body, 0, 0, 18, 16, cx - Math.round(w / 2), base - ph - h + 2, w, h);
+    const top = base - ph - h + 2 - sink;
+    ctx.drawImage(body, 0, 0, 18, 16, cx - Math.round(w / 2), top, w, h);
     if (k < 0.3) {
       const f = a.flames[Math.floor(this.time * 12) % a.flames.length];
       const s = 1 - k / 0.3;
       const fw = Math.max(1, Math.round(f.width * s)), fh = Math.max(1, Math.round(f.height * s));
-      ctx.drawImage(f, cx - Math.round(fw / 2), base - ph - h + 3 - fh, fw, fh);
+      ctx.drawImage(f, cx - Math.round(fw / 2), top + 1 - fh, fw, fh);
     }
   }
 
@@ -467,6 +495,9 @@ export class Player {
     if (Math.abs(x) > Math.abs(y)) return x > 0 ? 'right' : 'left';
     return y < 0 ? 'up' : 'down';
   }
+
+  // which way the little body faces (where Wick walks)
+  get bodyFacing() { return this.bodyDir || 'down'; }
 
   get hover() {
     return this.flying ? 3 + Math.round(Math.sin(this.time * 6) * 1.5) : 0;
@@ -490,53 +521,99 @@ export class Player {
     }
   }
 
-  // Draw a candle body with this player's animation state (also used for twins and echoes).
-  drawCandle(ctx, look, x, y, ox, oy, { flash = false, rage = false, alpha = 1, flare = true } = {}) {
-    const a = lookArt(look);
+  // The little wax body under the big head: it faces where Wick WALKS (the head faces where he
+  // shoots), legs stepping and stubby arms swinging. fy is the bottom row of the feet.
+  drawBody(ctx, a, cx, fy, dir, step, flash = false) {
+    const C = a.colors;
+    const K = flash ? '#ffffff' : C.k, W1 = flash ? '#ffffff' : C.w, W2 = flash ? '#ffffff' : C.W;
+    const D = flash ? '#ffffff' : C.d, LH = flash ? '#ffffff' : C.l;
+    const r = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
+    const bob = step === 1 || step === 3 ? 1 : 0;
+    if (dir === 'left' || dir === 'right') {
+      const s = dir === 'left' ? -1 : 1;
+      const sw = step < 0 ? 0 : [2, 0, -2, 0][step];          // the stride: legs scissor
+      for (const [off, shade] of [[-sw, D], [sw, W2]]) {      // back leg, then front leg
+        const lx = cx - 1 + off * s;
+        r(lx - 1, fy - 2, 3, 3, K); r(lx, fy - 2, 1, 2, shade);
+      }
+      const t = fy - 9 + bob, L = cx - 4;
+      r(L + 1, t, 6, 8, K); r(L, t + 1, 8, 6, K);
+      r(L + 1, t + 1, 6, 6, W1);
+      r(s > 0 ? L + 5 : L + 2, t + 1, 1, 6, W2);
+      r(s > 0 ? L + 6 : L + 1, t + 2, 1, 4, D);
+      const ax = cx + Math.round(-sw * 0.6) * s;              // one arm, swinging against the front leg
+      r(ax, t + 3, 1, 3, D); r(ax, t + 6, 1, 1, K);
+      return;
+    }
+    // facing down (front) or up (back): the legs take turns lifting
+    const lu = step === 0 ? 1 : 0, ru = step === 2 ? 1 : 0;
+    r(cx - 4, fy - 2 - lu, 3, 3, K); r(cx - 3, fy - 2 - lu, 1, 2, W2);
+    r(cx + 1, fy - 2 - ru, 3, 3, K); r(cx + 2, fy - 2 - ru, 1, 2, D);
+    const t = fy - 9 + bob, L = cx - 5;
+    const sway = step === 0 ? -1 : step === 2 ? 1 : 0;
+    r(L - 2, t + 3 + sway, 3, 3, K); r(L - 1, t + 4 + sway, 1, 1, W1);   // arms
+    r(L + 9, t + 3 - sway, 3, 3, K); r(L + 10, t + 4 - sway, 1, 1, W2);
+    r(L + 1, t, 8, 8, K); r(L, t + 1, 10, 6, K);
+    r(L + 1, t + 1, 8, 6, W1);
+    if (dir !== 'up') r(L + 1, t + 1, 1, 5, LH);
+    r(L + 6, t + 1, 2, 6, W2); r(L + 8, t + 2, 1, 4, D);
+  }
+
+  // Draw the candle (big head on a little body) with this player's animation state; also used
+  // for twins, echoes and portraits. body: false draws the old head-only candle with two feet
+  // (small icons). Returns where the head ended up.
+  drawCandle(ctx, look, x, y, ox, oy, { flash = false, rage = false, alpha = 1, flare = true, body = true } = {}) {
+    const a = lookArt(look), P = TUNING.player;
     const facing = this.facing;
     const shooting = this.shootingTime > 0 || this.charging;
     let face;
     if (this.hurtTime > 0) face = 'hurt';
     else if (facing === 'up') face = 'up';
-    else if (facing === 'down') face = shooting ? 'downShoot' : 'down';
+    else if (facing === 'down') face = shooting ? (this.shotSide > 0 ? 'downShootL' : 'downShootR') : 'down';
     else face = shooting ? 'sideShoot' : 'side';
-    const set = a.faces[face];
+    const set = a.faces[face] || a.faces.down;
     const left = facing === 'left';
-    const body = flash ? (left ? set.flashLeft : set.flashRight) : left ? set.left : set.right;
+    const head = flash ? (left ? set.flashLeft : set.flashRight) : left ? set.left : set.right;
 
     const step = this.walkTime > 0 && !this.flying ? Math.floor(this.walkTime * 10) % 4 : -1;
     const bob = step === 1 || step === 3 ? 1 : 0;
-    const squash = shooting && this.shootingTime > 0.1 ? 1 : 0;
     const hover = this.hover;
-    const bx = Math.round(x - 9 + ox);
-    const by = Math.round(y - 14 + oy) + bob + squash - hover;
+    const cx = Math.round(x + ox), fy = Math.round(y + oy) + 1 - hover;
+    const legs = body && !look.noFeet;
+    // the head: squashes for a moment with every shot, flinches back when hurt
+    const squash = this.time - (this.lastShotAt ?? -9) < P.shotSquash ? 2 : 0;
+    const flinch = this.hurtTime > P.flinch - 0.12 && this.hurtDir ? this.hurtDir : null;
+    const hx = flinch ? Math.round(flinch.x * 2) : 0, hy = flinch ? Math.round(flinch.y * 2) : 0;
+    const bx = cx - 9 + hx;
+    const by = (legs ? fy - 23 : fy - 15) + bob + hy;
+    const hw = 18 + squash, hh = 16 - squash, hTop = by + 16 - hh;
     const baseAlpha = (look.alpha ?? 1) * alpha;
     if (baseAlpha < 1) ctx.globalAlpha = baseAlpha;
 
     this.drawCostumes(ctx, look, bx, by, facing, true);
-    if (!look.noFeet) {
+    if (legs) this.drawBody(ctx, a, cx, fy, this.bodyFacing, step, flash);
+    else if (!look.noFeet) {
       ctx.fillStyle = flash ? '#ffffff' : COLORS.k;
-      const fy = Math.round(y + 1 + oy) - hover;
       const lf = step === 0 ? -1 : 0, rf = step === 2 ? -1 : 0;
-      ctx.fillRect(bx + 4, fy + lf, 3, 2);
-      ctx.fillRect(bx + 11, fy + rf, 3, 2);
+      ctx.fillRect(cx - 5, fy + lf, 3, 2);
+      ctx.fillRect(cx + 2, fy + rf, 3, 2);
     }
-    ctx.drawImage(body, bx, by);
+    ctx.drawImage(head, bx - squash / 2, hTop, hw, hh);
     if (rage && !flash) {
       ctx.globalAlpha = baseAlpha * (0.25 + Math.sin(this.time * 14) * 0.12);
-      ctx.drawImage(left ? set.rageLeft : set.rageRight, bx, by);
+      ctx.drawImage(left ? set.rageLeft : set.rageRight, bx - squash / 2, hTop, hw, hh);
       ctx.globalAlpha = baseAlpha;
     }
-    this.drawCostumes(ctx, look, bx, by, facing, false);
+    this.drawCostumes(ctx, look, bx, hTop, facing, false);
     const flame = flare && this.flareTime > 0 ? a.flare : a.flames[Math.floor(this.time * 9) % a.flames.length];
-    const fy = by + a.wickY - flame.height + 2;
-    ctx.drawImage(flame, bx + 9 - flame.width / 2, fy);
+    const flameY = hTop + a.wickY - flame.height + 2;
+    ctx.drawImage(flame, bx + 9 - flame.width / 2, flameY);
     ctx.globalAlpha = 1;
-    return { bx, by, flameTop: fy };
+    return { bx, by: hTop, flameTop: flameY };
   }
 
   render(ctx, ox, oy, game) {
-    if (this.invuln > 0 && this.flash <= 0 && this.ghostT <= 0 && Math.floor(this.invuln * 14) % 2 === 0) return;
+    if (this.invuln > 0 && this.flash <= 0 && this.ghostT <= 0 && Math.floor(this.invuln * TUNING.player.blinkRate) % 2 === 0) return;
     const smoke = this.ghostT > 0;
     // a quality 4 item: hop and sway from side to side, turning left and right
     let dx = 0, dy = 0;
@@ -592,7 +669,7 @@ export class Player {
       if (!blink) {
         const ward = this.shieldT <= 0;
         ctx.fillStyle = ward ? 'rgba(240,244,255,0.45)' : 'rgba(160,220,255,0.55)';
-        const cx = this.x + ox, cy = this.y - 8 + oy - this.hover;
+        const cx = this.x + ox, cy = this.y - 12 + oy - this.hover;
         const n = ward ? 24 : 40;
         for (let i = 0; i < n; i++) {
           const ang = (i / n) * Math.PI * 2 + this.time * (ward ? -0.7 : 1);
@@ -602,17 +679,19 @@ export class Player {
     }
   }
 
-  // Draw a see-through copy of the candle somewhere else (Tallow Twin, boss intro).
+  // Draw a see-through copy of the candle somewhere else (Tallow Twin, boss intro), standing still.
   renderCopy(ctx, x, y, ox, oy, alpha, look = this.look) {
     const a = lookArt(look);
     const facing = this.facing;
     const set = a.faces[facing === 'up' ? 'up' : facing === 'down' ? 'down' : 'side'];
-    const body = facing === 'left' ? set.left : set.right;
-    const bx = Math.round(x - 9 + ox), by = Math.round(y - 14 + oy);
+    const head = facing === 'left' ? set.left : set.right;
+    const cx = Math.round(x + ox), fy = Math.round(y + oy) + 1;
+    const bx = cx - 9, by = look.noFeet ? fy - 15 : fy - 23;
     ctx.globalAlpha = alpha * (look.alpha ?? 1);
     ctx.drawImage(a.shadow, bx, Math.round(y + oy));
     this.drawCostumes(ctx, look, bx, by, facing, true);
-    ctx.drawImage(body, bx, by);
+    if (!look.noFeet) this.drawBody(ctx, a, cx, fy, 'down', -1);
+    ctx.drawImage(head, bx, by);
     this.drawCostumes(ctx, look, bx, by, facing, false);
     const flame = a.flames[Math.floor(this.time * 9 + 1) % a.flames.length];
     ctx.drawImage(flame, bx + 9 - flame.width / 2, by + a.wickY - flame.height + 2);
@@ -624,7 +703,7 @@ export class Player {
     const a = lookArt(this.look);
     const flicker = 0.85 + Math.sin(this.time * 13) * 0.05 + Math.sin(this.time * 31) * 0.04 + (this.flareTime > 0 ? 0.15 : 0);
     ctx.globalAlpha = 0.32 * flicker;
-    ctx.drawImage(a.glow, Math.round(this.x - 56 + ox), Math.round(this.y - 78 + oy - this.hover));
+    ctx.drawImage(a.glow, Math.round(this.x - 56 + ox), Math.round(this.y - 84 + oy - this.hover));
     ctx.globalAlpha = 1;
   }
 }

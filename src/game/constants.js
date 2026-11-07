@@ -55,5 +55,5 @@ export const DOOR_POS = {
 export const DOOR_CELL = { up: [6, 0], down: [6, 6], left: [0, 3], right: [12, 3] };
 
 // Pixel/second scale for the "1.0" value of speed stats.
-export const MOVE_SPEED_PX = 112;
+export const MOVE_SPEED_PX = TUNING.player.moveSpeed;   // 125: see data/tuning.js
 export const SHOT_SPEED_PX = 165;

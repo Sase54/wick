@@ -13,7 +13,7 @@ import { drawDebugFloorMap } from '../ui/debugmap.js';
 import { Player } from './player.js';
 import { Projectiles } from './projectiles.js';
 import { Effects } from './effects.js';
-import { Enemy, populateRoom, computeFlow, clearEntry } from './enemies.js';
+import { Enemy, populateRoom, computeFlow, clearEntry, enemyPicture } from './enemies.js';
 import { drawDoor } from './door.js';
 import { Pickup, pickupIcon } from './pickups.js';
 import { Bomb, BOMB_RADIUS, BOMB_DAMAGE } from './bombs.js';
@@ -43,7 +43,7 @@ import { Crawlspace } from './crawlspace.js';
 import { CONSUMABLE_FX, fillPickup, takeConsumable, takeTrinket, usePocket, switchPocket, setupPills, absorbTrinket } from './consumables.js';
 import { Menu } from '../ui/menu.js';
 import { drawWaxPanel, inkAlpha, INK } from '../ui/wax.js';
-import { BLOOD, enemyDef } from '../data/enemies.js';
+import { BLOOD, ENEMIES, enemyDef } from '../data/enemies.js';
 import { DROP_TABLES, KEY_PITY_ROOMS, SOOT_BLAST_DAMAGE, HEART_KINDS } from '../data/pickups.js';
 import { PAL } from '../data/palette.js';
 import { VIEW_W, VIEW_H, ROOM_X, ROOM_Y, ROOM_W, ROOM_H, T, DIRS } from './constants.js';
@@ -55,7 +55,7 @@ import { audio, sfx } from '../engine/audio.js';
 import { drawText } from '../ui/text.js';
 
 const TRANSITION_TIME = TUNING.camera.transition;
-const DEATH_TIME = 2.2;
+const DEATH_TIME = TUNING.player.meltTime + TUNING.player.deathPause;   // melt, then a short pause
 // beat The Chandler within this many seconds of the run (and own the unlock) for the boss rush
 const BOSS_RUSH_TIME = 22 * 60;
 // double bosses: from this chapter on, this chance that a floor's boss comes as a pair
@@ -86,6 +86,22 @@ function getVignette() {
   ctx.fillStyle = g;
   ctx.fillRect(-VIEW_W, -VIEW_W, VIEW_W * 2, VIEW_W * 2);
   vignette = c;
+  return c;
+}
+
+// Red screen edges for low health (faded in and out by the heartbeat).
+let redEdges = null;
+function getRedEdges() {
+  if (redEdges) return redEdges;
+  const [c, ctx] = makeCanvas(VIEW_W, VIEW_H);
+  ctx.translate(VIEW_W / 2, VIEW_H / 2);
+  ctx.scale(1, VIEW_H / VIEW_W);
+  const g = ctx.createRadialGradient(0, 0, VIEW_W * 0.42, 0, 0, VIEW_W * 0.72);
+  g.addColorStop(0, 'rgba(160,10,10,0)');
+  g.addColorStop(1, 'rgba(170,12,12,1)');
+  ctx.fillStyle = g;
+  ctx.fillRect(-VIEW_W, -VIEW_W, VIEW_W * 2, VIEW_W * 2);
+  redEdges = c;
   return c;
 }
 
@@ -649,6 +665,7 @@ export class Game {
       if (td.ready && !p.dead && Math.hypot(p.x - td.x, p.y - td.y) < 8) this.enterTrapdoor();
     }
     this.room.redraw();
+    this.updateLowHealth(dt);
     this.updateCamera(dt);
     if (!p.dead) this.checkExit();
   }
@@ -828,6 +845,8 @@ export class Game {
     const visited = [...this.floor.cells.values()].filter((c) => c.visited).length;
     return {
       killedBy: this.player.killedBy || 'Something in the dark',
+      killerPic: this.player.killerPic || null,
+      itemIds: [...this.player.items],
       time: this.stats.time,
       rooms: this.stats.rooms + visited,
       kills: this.stats.kills,
@@ -1156,7 +1175,7 @@ export class Game {
     if (once.gives) for (const k of ['coins', 'bombs', 'keys']) if (once.gives[k]) p[k] = Math.min(99, p[k] + once.gives[k]);
     (once.spawn || []).forEach((type, i) => this.spawnPickup(type, p.x - 8 + i * 16, p.y + 14));
     const [pic, pctx] = makeCanvas(24, 34);
-    p.drawCandle(pctx, p.look, 12, 30, 0, 0, { flare: false });
+    p.drawCandle(pctx, p.look, 12, 30, 0, 0, { flare: false, body: false });
     this.banner = { text: t.name, sub: t.desc, t: 0, dur: 3.6, top: true, icon: pic };
     p.danceT = 1.2;
     sfx('jingle');
@@ -1454,6 +1473,41 @@ export class Game {
     }
   }
 
+  // What got you, as a picture for the death screen (the boss, the enemy, or one painted from the
+  // data when the shooter is already gone). Null for hazards and the like.
+  killerPicture(name) {
+    try {
+      for (const b of this.bosses) if (b.name === name) return b.portrait();
+      for (const e of this.enemies) if (e.def?.name === name && e.frame) return e.frame();
+      for (const id of Object.keys(ENEMIES)) {
+        const def = enemyDef(id);
+        if (def.name === name) return enemyPicture(def.art);
+      }
+    } catch (err) { /* no picture then */ }
+    return null;
+  }
+
+  // Low health (1 heart or less, every kind counted): a heartbeat, and the screen edges pulse red
+  // with each beat (drawn in renderLowHealth).
+  updateLowHealth(dt) {
+    const P = TUNING.player, p = this.player;
+    const low = !p.dead && !p.health.oneHit && p.health.total <= P.lowHealth && this.state === 'play';
+    if (!low) { this.beatT = 0; this.beatK = Math.max(0, (this.beatK || 0) - dt * 2); return; }
+    this.beatT = (this.beatT || 0) - dt;
+    if (this.beatT <= 0) { this.beatT = P.heartbeatEvery; this.beatAt = this.time; sfx('heartbeat'); }
+    this.beatK = Math.min(1, (this.beatK || 0) + dt * 2);
+  }
+
+  renderLowHealth(ctx) {
+    if (!this.beatK) return;
+    const since = this.time - (this.beatAt ?? -9);
+    // lub-dub: two quick swells per beat
+    const pulse = Math.max(0, 1 - since * 4) + 0.7 * Math.max(0, 1 - Math.abs(since - 0.2) * 5);
+    ctx.globalAlpha = Math.min(1, this.beatK * TUNING.player.lowPulse * (0.35 + pulse));
+    ctx.drawImage(getRedEdges(), 0, 0);
+    ctx.globalAlpha = 1;
+  }
+
   onPlayerDeath() {
     this.state = 'dying';
     this.stateT = 0;
@@ -1693,6 +1747,7 @@ export class Game {
     this.renderLighting(ctx, ox, oy);
     this.renderDarkness(ctx, ox, oy);
     ctx.drawImage(getVignette(), 0, 0);
+    this.renderLowHealth(ctx);
     if (this.hurtFlash > 0) {
       ctx.fillStyle = `rgba(150,20,20,${(this.hurtFlash / 0.18) * 0.25})`;
       ctx.fillRect(0, 0, VIEW_W, VIEW_H);
@@ -1878,7 +1933,7 @@ export class Game {
     const p = this.player;
     const flicker = Math.sin(this.time * 9) * 1.5;
     ctx.globalAlpha = this.darkK;
-    ctx.drawImage(this.darkMasks[wide], Math.round(p.x + ox - VIEW_W + flicker), Math.round(p.y + oy - 16 - VIEW_H));
+    ctx.drawImage(this.darkMasks[wide], Math.round(p.x + ox - VIEW_W + flicker), Math.round(p.y + oy - 22 - VIEW_H));
     ctx.globalAlpha = 1;
   }
 
@@ -1906,7 +1961,7 @@ export class Game {
     this.projectiles.renderShadows(ctx, ox, oy);
     for (const e of list) {
       if (e === this.player && this.player.dead) {
-        this.player.renderDeath(ctx, ox, oy, this.state === 'dying' ? this.stateT / DEATH_TIME : 1);
+        this.player.renderDeath(ctx, ox, oy, this.state === 'dying' ? Math.min(1, this.stateT / TUNING.player.meltTime) : 1);
       } else if (e === this.player && this.state === 'descend') {
         // Wick climbs down into the dark: shrink toward the hole.
         const s = Math.max(0.05, 1 - this.stateT / 1.1);
@@ -1943,36 +1998,63 @@ export class Game {
     }
   }
 
+  // The death screen: what got you (its picture), where, the run's numbers and every item you
+  // carried. Laid out for the 480x270 screen.
   renderGameOver(ctx) {
     const k = Math.min(1, this.stateT / 0.6);
-    ctx.fillStyle = `rgba(6,4,4,${0.55 + k * 0.3})`;
+    ctx.fillStyle = `rgba(6,4,4,${0.6 + k * 0.3})`;
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
     ctx.globalAlpha = k;
     const s = this.summary;
     const mid = VIEW_W / 2;
-    drawText(ctx, 'YOUR FLAME WENT OUT', mid, 40 + UI_Y, { align: 'center', scale: 2, color: PAL.textWarn });
-    drawText(ctx, 'SNUFFED OUT BY', mid, 70 + UI_Y, { align: 'center', color: PAL.textDim });
-    drawText(ctx, s.killedBy, mid, 82 + UI_Y, { align: 'center', color: PAL.textBad, scale: 2 });
+    drawText(ctx, 'YOUR FLAME WENT OUT', mid, 14, { align: 'center', scale: 2, color: PAL.textWarn });
 
+    // left: the killer's picture in a dark frame
+    const fx = 40, fy = 50, fw = 120, fh = 104;
+    ctx.fillStyle = '#120b09'; ctx.fillRect(fx, fy, fw, fh);
+    ctx.fillStyle = '#3a2418'; ctx.fillRect(fx, fy, fw, 1); ctx.fillRect(fx, fy + fh - 1, fw, 1); ctx.fillRect(fx, fy, 1, fh); ctx.fillRect(fx + fw - 1, fy, 1, fh);
+    drawText(ctx, 'SNUFFED OUT BY', fx + fw / 2, fy - 12, { align: 'center', color: PAL.textDim });
+    const pic = s.killerPic;
+    if (pic && pic.width) {
+      const sc = Math.max(1, Math.min(4, Math.floor(Math.min((fw - 16) / pic.width, (fh - 34) / pic.height))));
+      const w = pic.width * sc, h = pic.height * sc;
+      ctx.drawImage(pic, Math.round(fx + (fw - w) / 2), Math.round(fy + (fh - 22 - h) / 2 + 4), w, h);
+    } else {
+      drawText(ctx, '?', fx + fw / 2, fy + 26, { align: 'center', scale: 4, color: '#5a4030' });
+    }
+    drawText(ctx, String(s.killedBy).toUpperCase(), fx + fw / 2, fy + fh - 16, { align: 'center', color: PAL.textBad });
+
+    // right: where and how it went
     const mm = Math.floor(s.time / 60), ss = Math.floor(s.time % 60);
     const rows = [
-      ['TIME', `${mm}:${String(ss).padStart(2, '0')}`],
       ['FLOOR', `${s.floor}. ${s.floorName}`],
+      ['TIME', `${mm}:${String(ss).padStart(2, '0')}`],
       ['ROOMS EXPLORED', `${s.rooms}`],
       ['ENEMIES SNUFFED', `${s.kills}`],
-      ['ITEMS FOUND', `${s.items}`],
       ['DAMAGE TAKEN', `${(s.damage / 2).toFixed(1)} HEARTS`],
       ['SEED', this.seed],
     ];
+    const rx = 184, rw = 256;
     rows.forEach(([label, value], i) => {
-      const y = 100 + UI_Y + i * 11;
-      drawText(ctx, label, mid - 90, y, { color: PAL.textDim });
-      drawText(ctx, value, mid + 90, y, { align: 'right' });
+      const y = fy + 4 + i * 14;
+      drawText(ctx, label, rx, y, { color: PAL.textDim });
+      drawText(ctx, value, rx + rw, y, { align: 'right' });
     });
+
+    // bottom: the items you carried
+    const ids = s.itemIds || [];
+    drawText(ctx, ids.length ? `ITEMS (${ids.length})` : 'NO ITEMS', 40, 166, { color: PAL.textDim });
+    const cell = 22, perRow = Math.floor((VIEW_W - 80) / cell), maxRows = 2;
+    ids.slice(0, perRow * maxRows).forEach((id, i) => {
+      const icon = itemIcon(id);
+      const cx = 40 + (i % perRow) * cell + cell / 2, cy = 190 + Math.floor(i / perRow) * cell;
+      ctx.drawImage(icon, Math.round(cx - icon.width / 2), Math.round(cy - icon.height / 2));
+    });
+    if (ids.length > perRow * maxRows) drawText(ctx, `+${ids.length - perRow * maxRows}`, VIEW_W - 40, 222, { align: 'right', color: PAL.textDim });
 
     if (this.stateT >= 0.8 && Math.floor(this.stateT * 2) % 2 === 0) {
       const msg = this.touch.enabled ? 'TAP TO TRY AGAIN' : 'ENTER: NEW RUN   R: SAME SEED   ESC: MENU';
-      drawText(ctx, msg, mid, 186 + UI_Y, { align: 'center', color: PAL.text });
+      drawText(ctx, msg, mid, VIEW_H - 16, { align: 'center', color: PAL.text });
     }
     ctx.globalAlpha = 1;
   }

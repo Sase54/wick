@@ -54,6 +54,9 @@ export const WICK_FACES = {
     [5, 8, 'e'], [6, 8, 'e'], [11, 8, 'e'], [12, 8, 'e'],
     [8, 10, 'm'], [9, 10, 'm'], [8, 11, 'm'], [9, 11, 'm'],
   ],
+  // shooting: the eye that fires squints, the other stays wide (shots alternate eyes)
+  downShootL: [[5, 8, 'e'], [6, 8, 'e'], ...eye(11, 6), [8, 10, 'm'], [9, 10, 'm'], [8, 11, 'm'], [9, 11, 'm']],
+  downShootR: [...eye(5, 6), [11, 8, 'e'], [12, 8, 'e'], [8, 10, 'm'], [9, 10, 'm'], [8, 11, 'm'], [9, 11, 'm']],
   side: [...eye(9, 6), [13, 6, 'e'], [13, 7, 'e'], [13, 8, 'e'], [12, 10, 'm']],
   sideShoot: [[9, 8, 'e'], [10, 8, 'e'], [13, 8, 'e'], [12, 10, 'm'], [12, 11, 'm']],
   up: [],

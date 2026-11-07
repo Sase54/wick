@@ -14,6 +14,11 @@ const SFX = Object.fromEntries([
     a.tone({ type: 'sine', f: vary(560), f2: 240, dur: 0.1, vol: 0.16 });
     a.noise({ dur: 0.05, vol: 0.05, f: 1400 });
   }),
+  // low health: a soft lub-dub
+  N('heartbeat', (a) => {
+    a.tone({ type: 'sine', f: 62, f2: 40, dur: 0.13, vol: 0.32 });
+    a.tone({ type: 'sine', f: 55, f2: 36, dur: 0.12, vol: 0.22, delay: 0.2 });
+  }),
   N('splash', (a) => a.noise({ dur: 0.07, vol: 0.05, type: 'bandpass', f: vary(900, 0.2), q: 2 })),
   // character weapons and heart effects
   N('swing', (a) => a.noise({ dur: 0.14, vol: 0.14, type: 'bandpass', f: vary(700), f2: 2400, q: 1.5 })),

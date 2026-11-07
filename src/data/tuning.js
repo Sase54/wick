@@ -32,4 +32,32 @@ export const TUNING = {
     darknessRadius: 78,     // the final boss's dark phase: light radius around Wick (px)
     darknessWideRadius: 96, // Curse of the Guttered Flame and the dark pill: a wider light
   },
+
+  // ---- 2. The player
+  player: {
+    moveSpeed: 125,         // px per second at speed 1.0: crosses a room's 312 px floor in ~2.5 s
+    speedMin: 0.1,          // the speed stat's limits
+    speedMax: 2.0,
+    accelTime: 0.1,         // seconds from standing still to full speed
+    slideTime: 0.15,        // seconds to slide to a stop after letting go
+    headIdle: 0.35,         // seconds standing still (not shooting) before the head looks back down
+    shotSquash: 0.08,       // seconds the head squashes after each shot
+    eyeOffset: 3,           // px from the middle of the face to each eye (shots alternate eyes)
+    eyeHeight: 16,          // px above the feet where shots leave the eyes
+    // getting hurt
+    invuln: 1.0,            // seconds of blinking invincibility after a hit
+    invulnFull: 1.33,       // ...after a hit of a full heart or more
+    blinkRate: 14,          // blinks per second while invincible
+    flinch: 0.4,            // seconds the hurt face shows
+    knockback: 150,         // px/s push away from what hit you
+    hurtShake: 5,           // screen shake strength
+    hurtFlash: 0.18,        // seconds of red screen flash
+    // low health: a heartbeat and a red pulse at the screen edges
+    lowHealth: 2,           // half hearts (all kinds) at or below which it starts: 1 heart
+    heartbeatEvery: 0.85,   // seconds between beats
+    lowPulse: 0.32,         // strength of the red edges at the peak of a beat
+    // death
+    meltTime: 1.4,          // seconds of the melting animation
+    deathPause: 0.8,        // then a short pause before the death screen
+  },
 };

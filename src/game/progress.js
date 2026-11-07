@@ -115,7 +115,8 @@ class Progress {
 
   // Keep the last runs and the fastest wins.
   recordRun(result, summary, seed) {
-    const entry = { seed, result, ...summary, date: Date.now() };
+    const { killerPic, itemIds, ...kept } = summary;   // pictures and item lists stay out of the save
+    const entry = { seed, result, ...kept, date: Date.now() };
     this.data.recent = [entry, ...this.data.recent].slice(0, 10);
     if (result === 'win') this.data.best = [...this.data.best, entry].sort((a, b) => a.time - b.time).slice(0, 5);
     this.save();

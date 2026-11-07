@@ -45,6 +45,34 @@ there and the game follows; nothing else needs editing. Sections are added as th
   the corner buttons (character select BACK/TWISTED/START) in the real corners; the paper-look
   menu pass redoes them.
 
+### 2. The player (`TUNING.player`)
+
+- **Look**: every character is a **big candle head on a little wax body**, drawn separately. The
+  head is the character's own candle (face, flame, costumes), 18 px wide; the body is 10 px wide
+  with two stubby legs and arms, in the character's wax colors. Ghostly characters (no feet) keep
+  floating without a body. Small icons (pause screen forms, the transformation banner) still show
+  the head alone.
+- **The body faces where you walk** (front, back, left, right: legs step, arms swing); **the head
+  faces where you shoot**, or where you walk when you aren't shooting, and after 0.35 s standing
+  still it looks back down at you. Walking backwards while shooting forwards shows the body's
+  back under a face looking at you.
+- **Shooting**: the head squashes for 0.08 s with every shot; shots alternate between the left and
+  right eye (3 px from the middle), and the eye that fires squints while the mouth opens. Shots
+  leave 16 px above the feet.
+- **Movement**: 8 directions on keys (diagonals as fast as straight lines), analog on the stick.
+  Full speed in **0.1 s**, a short slide of **0.15 s** after letting go. Speed 1.0 = 125 px/s,
+  crossing a room's floor in about 2.5 s; the speed stat stays between **0.1 and 2.0**.
+- **Getting hurt**: the hurt face, the head knocked back for a moment, a red flash (0.18 s),
+  a push away from what hit you (150 px/s), a screen shake and the hurt sound, then **1 s** of
+  blinking invincibility (**1.33 s** after a hit of a full heart or more). Nothing hurts you
+  while it lasts.
+- **Low health** (1 heart or less, every kind of heart counted): a soft lub-dub heartbeat every
+  0.85 s and the screen edges pulse red with each beat. Characters who die in one hit don't get it.
+- **Death**: the body sinks into a puddle and the head melts after it as the flame goes out
+  (1.4 s), a 0.8 s pause, then the death screen: **what got you, with its picture** (the enemy or
+  boss; a ? for hazards), the floor, time, rooms, kills, damage taken, the seed, and **every item
+  you carried**.
+
 ---
 
 ## HEARTS

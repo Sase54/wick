@@ -308,7 +308,7 @@ function formIcon(tid) {
     const look = { id: 'wick', costumes: [].concat(b.costume || []), flame: b.flame || null, bodyTint: b.bodyTint || null, colorKey: '' };
     let ctx;
     [c, ctx] = makeCanvas(30, 27);
-    new Player(15, 23).drawCandle(ctx, look, 15, 23, 0, 0, { flare: false });   // a stand-in, standing still
+    new Player(15, 23).drawCandle(ctx, look, 15, 23, 0, 0, { flare: false, body: false });   // a stand-in, standing still
     FORM_ICONS.set(tid, c);
   }
   return c;

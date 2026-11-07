@@ -120,12 +120,12 @@ export class CharSelect {
   liveCandle(id) {
     let p = this.live.get(id);
     if (!p) {
-      p = new Player(12, 30, CHARACTERS[id], id);
+      p = new Player(12, 32, CHARACTERS[id], id);
       this.live.set(id, p);
     }
     p.time = this.t;
     this.cctx.clearRect(0, 0, 24, 34);
-    p.drawCandle(this.cctx, p.look, 12, 30, 0, 0, { flare: false });
+    p.drawCandle(this.cctx, p.look, 12, 32, 0, 0, { flare: false });
     return this.canvas;
   }
 
@@ -184,9 +184,9 @@ export class CharSelect {
       if (twin && s > 1) {
         const t = s - 1, tx = x + 13 * s;
         const timg = open ? characterPortrait(twin.look) : this.darkCandle(twin.look);
-        ctx.drawImage(timg, tx - 12 * t, BASE_Y - 30 * t, 24 * t, 34 * t);
+        ctx.drawImage(timg, tx - 12 * t, BASE_Y - 32 * t, 24 * t, 34 * t);
       }
-      ctx.drawImage(img, x - 12 * s, BASE_Y - 30 * s, 24 * s, 34 * s);
+      ctx.drawImage(img, x - 12 * s, BASE_Y - 32 * s, 24 * s, 34 * s);
       if (!open) drawText(ctx, '?', x, BASE_Y - 15 * s, { align: 'center', scale: s, color: '#c9b48a' });
       ctx.globalAlpha = 1;
     }
