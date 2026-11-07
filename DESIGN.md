@@ -158,6 +158,34 @@ over the top of Wick's head on screen is really behind him on the floor and miss
   you, `F` = flying), cyan = Wick's shots, orange = enemy shots (the faint ring is their visible
   size), grey = tiles that stop walking, purple = pits.
 
+### 7. Enemies and combat feel (`TUNING.enemies`)
+
+- **Walking in**: the doors slam shut with a sound, enemies fade in (0.5 s) and then stand still for
+  **0.5-1 s** (random each; `graceMin`/`graceMax`), counted from the moment you enter. Meanwhile
+  they can't hurt you (touch or shots) but you can already shoot them. Coming back into a room you
+  left uncleared gives the same wait. Enemies that spawn mid-fight (splits, nests) don't wait.
+- **Telegraphs and recovery**: unchanged from the ENEMIES section (wind-up pose, red glow, shake,
+  sound, white flash, dotted path, landing marks; stun after charges and jumps).
+- **Deaths**: the body squashes flat and fades (**0.14 s**) while a burst of blood and
+  **gibs** fly out (3 chunks + 0.45 per px of body radius; bigger enemies throw bigger chunks). Gibs
+  bounce once and stay on the floor as specks. The floor stain is **1.3x the body radius**, and
+  enemies of radius 12+ (minibosses, big ones) leave extra blotches around it. Every stain stays for
+  the rest of the room; the colors come from the enemy's blood (red, green goo, dust, wax, tar...).
+  Ghostly enemies leave nothing.
+- **Enemy shots** are dark red **blood drops**: a darker red ball with two smaller drops trailing
+  behind it (`shotTail`), a shadow on the floor, and the same flight as Wick's shots (level, then
+  a little lift and an arc down to a splash at the end of their range). Themed shots (embers, goo,
+  ghost fire, ice...) keep their color but get the same drop shape.
+- **Status effects** wash the enemy in a pulsing color and show a small outlined **icon** over its
+  head, one per status, side by side: **poison** green drop, **burn** orange flame, **slow** grey
+  hourglass, **fear** purple skull, **charm** pink heart, **freeze** blue snowflake (art:
+  `src/data/statusIcons.js`). Bosses show poison, burn and chill (freeze) the same way.
+- **Bosses**: the VS screen when you walk in (Wick's portrait and name vs the boss, twice as big,
+  with its name), the health bar along the bottom, and on death the shaking explosions, then a big
+  burst of the boss's own blood (from its shot color: ember bosses bleed fire, ghosts pale wisps),
+  **40 gibs**, a huge stain with splatters around it and **0.8 s of slow motion** (everything at
+  30% speed, `bossSlowmo`/`bossSlowmoScale`).
+
 ---
 
 ## HEARTS
@@ -1358,6 +1386,9 @@ to take; hops show where they'll land. Afterwards most have a recovery window. *
 face you, shake with glowing eyes and snort for ~0.5 s, then run with a dust trail, motion blur and
 a faster run cycle; hitting a wall stuns them for ~1 s (small screen shake, dust, stars circling
 their head).
+
+**Walking in, deaths, shots and statuses**: see FEEL AND TUNING section 7 (a short wait before
+enemies act, squash + gibs + stains, blood-drop shots, status icons).
 
 | Enemy | id | Where | HP | Behavior |
 |---|---|---|---|---|

@@ -48,6 +48,7 @@ import { DROP_TABLES, KEY_PITY_ROOMS, SOOT_BLAST_DAMAGE, HEART_KINDS } from '../
 import { PAL } from '../data/palette.js';
 import { VIEW_W, VIEW_H, ROOM_X, ROOM_Y, ROOM_W, ROOM_H, T, DIRS, TILE } from './constants.js';
 import { TUNING } from '../data/tuning.js';
+import { Gibs } from './gibs.js';
 import { drawHud } from '../ui/hud.js';
 import { PauseScreen } from '../ui/pause.js';
 import { weaponEnterRoom } from './weapons.js';
@@ -106,6 +107,12 @@ function getRedEdges() {
 }
 
 const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+
+// A boss's blood, from the color of its shots (src/data/bosses.js `style`).
+const BOSS_BLOOD = { blood: 'red', bone: 'bone', dust: 'dust', ember: 'ember', ghost: 'ghost', green: 'green', ice: 'crystal', spark: 'ember', tar: 'tar', violet: 'tar' };
+function bossBlood(boss) {
+  return BLOOD[boss.def.blood] || BLOOD[BOSS_BLOOD[boss.def.style]] || BLOOD.red;
+}
 
 // A blotchy stain on the floor where something died.
 function splat(g, x, y, size, colors) {
@@ -177,10 +184,12 @@ export class Game {
     this.familiars = [];
     this.trail = [];
     this.slowT = 0;
+    this.slowmoT = 0;
     this.enemyTimeScale = 1;
     this.flashT = 0;
     this.projectiles = new Projectiles(this);
     this.particles = new Particles();
+    this.gibs = new Gibs();
     this.effects = new Effects();
     this.stats = { kills: 0, damageTaken: 0, time: 0, items: [], bossKilled: false, bosses: 0, rooms: 0 };
     this.bossIntro = null;
@@ -450,9 +459,13 @@ export class Game {
     for (const gn of this.gnats) { gn.x = p.x + (Math.random() - 0.5) * 20; gn.y = p.y; gn.target = null; }
     weaponEnterRoom(p);
     p.runMech('enterRoom', this);
+    // enemies wait a moment before they move or attack, so walking in is never an instant hit
+    const EN = TUNING.enemies;
     for (const e of this.enemies) {
       if (e.spawnT > 0) this.particles.burst(e.x, e.y, 6, { colors: ['#1a1210', '#2a201a'], speed: 25, z: 4, vz: 30, life: 0.5 });
+      e.graceT = EN.graceMin + Math.random() * (EN.graceMax - EN.graceMin);
     }
+    this.gibs.clear();
   }
 
   // The music for right now (src/data/music.js): a boss fight, a special room, the crawlspace, or
@@ -491,6 +504,11 @@ export class Game {
       else this.debugMenu.update(dt, input);
       return;
     }
+    // slow motion (a boss dying): everything runs slower for a moment of real time
+    if (this.slowmoT > 0) {
+      this.slowmoT -= dt;
+      dt *= TUNING.enemies.bossSlowmoScale;
+    }
     const pausePressed = input.consume('pause');
     input.consume('back');
     if (pausePressed && this.state === 'play') {
@@ -514,6 +532,7 @@ export class Game {
       this.player.time += dt;
       this.particles.update(dt);
       this.effects.update(dt);
+      this.gibs.update(dt, this.room);
       this.projectiles.update(dt);
       if (this.stateT > 0.5 && this.stateT < 1.6 && Math.random() < dt * 14) {
         this.particles.spawn(this.player.x + (Math.random() - 0.5) * 4, this.player.y, {
@@ -651,6 +670,7 @@ export class Game {
     this.projectiles.update(dt);
     this.particles.update(dt);
     this.effects.update(dt);
+    this.gibs.update(dt, this.room);
     if (this.enemies.some((e) => e.dead)) this.room.enemies = this.enemies.filter((e) => !e.dead);
     if (!this.room.cleared && this.enemies.length === 0 && !this.bosses.length && !this.room.waves && !this.room.waitWaves) this.onRoomCleared();
     // challenge doors only open while your red hearts are full (from the outside)
@@ -710,6 +730,17 @@ export class Game {
     this.effects.ring(boss.x, boss.y, 70, '#f08a24', 0.5, 10);
     this.particles.burst(boss.x, boss.y - 8, 50, { colors: ['#9a9aa4', '#6a6a74', '#2a2a30', '#f08a24', '#ffd25a'], speed: 150, z: 14, vz: 120, sizeVar: 3, life: 1.1 });
     room.paintDecal((g) => splat(g, boss.x, boss.y + 6, 22, ['#0e0a08', '#1a1210', '#3a2416']));
+    // the big finish: a burst of the boss's own blood, chunks everywhere, a huge stain, slow motion
+    {
+      const EN = TUNING.enemies, blood = bossBlood(boss);
+      this.slowmoT = EN.bossSlowmo;
+      this.particles.burst(boss.x, boss.y - 8, 60, { colors: blood, speed: 170, z: 14, vz: 130, gravity: 320, sizeVar: 3, life: 1.2 });
+      this.gibs.burst(boss.x, boss.y, 14, blood, EN.bossGibs, 3);
+      room.paintDecal((g) => {
+        splat(g, boss.x, boss.y + 6, 34, blood);
+        for (let i = 0; i < 6; i++) splat(g, boss.x + (Math.random() - 0.5) * 110, boss.y + 6 + (Math.random() - 0.5) * 60, 10, blood);
+      });
+    }
     const cx = room.centerX, cy = room.centerY;
     if (this.cell.firstBoss) {
       // the first of two boss rooms: an item, and the way on to the second
@@ -987,7 +1018,17 @@ export class Game {
     this.particles.burst(e.x, e.y, 12 + e.r, { colors: blood, speed: 85, z: e.z + 6, vz: 80, gravity: 320, sizeVar: 2, life: 0.7 });
     this.effects.ring(e.x, e.y, e.r + 10, blood[blood.length - 1], 0.3);
     this.shake(e.maxHp >= 14 ? 3 : 2);
-    if (e.def.blood !== 'ghost') this.room.paintDecal((g) => splat(g, e.x, e.y + e.r * 0.5, e.r, blood));
+    if (e.def.blood !== 'ghost') {
+      // a squash, chunks flying out, and a stain that stays for the room (bigger enemies, more mess)
+      const EN = TUNING.enemies;
+      this.gibs.corpse(e.deathImage(), e.x, e.y + e.r * 0.6 + 2, e.z, e.scale);
+      this.gibs.burst(e.x, e.y, e.z + 6, blood, Math.round(EN.gibsBase + e.r * EN.gibsPerRadius), e.r >= EN.bigSplat ? 2 : 1);
+      const size = e.r * EN.splatScale;
+      this.room.paintDecal((g) => {
+        splat(g, e.x, e.y + e.r * 0.5, size, blood);
+        if (e.r >= EN.bigSplat) for (let i = 0; i < 3; i++) splat(g, e.x + (Math.random() - 0.5) * size * 2.4, e.y + e.r * 0.5 + (Math.random() - 0.5) * size, size * 0.4, blood);
+      });
+    }
 
     e.onKilled?.(this);
     const d = e.def;
@@ -1750,6 +1791,7 @@ export class Game {
     this.player.runMech('renderFloor', ctx, ox, oy, this);
     this.effects.render(ctx, ox, oy);
     this.renderEntities(ctx, ox, oy);
+    this.gibs.render(ctx, ox, oy);
     this.projectiles.render(ctx, ox, oy);
     this.particles.render(ctx, ox, oy);
     this.ambience.render(ctx, ox, oy, this);

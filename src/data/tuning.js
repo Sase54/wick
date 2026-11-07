@@ -127,4 +127,22 @@ export const TUNING = {
     contactInset: 1,       // enemy touch: its body circle must overlap the hurtbox by this many px
     // Flying enemies, flying Wick and every shot cross pits; walking things can't (src/game/room.js).
   },
+
+  // ---- 7. Enemies and combat feel
+  enemies: {
+    // walking into a room: enemies fade in (0.5 s), then stand still this long (random in between)
+    // before they move or attack. They can't hurt you meanwhile; you can already shoot them.
+    graceMin: 0.5, graceMax: 1.0,
+    // death: the body squashes flat for this long while gibs fly out and a stain stays on the floor
+    deathSquish: 0.14,
+    gibsBase: 3,            // gib chunks per kill: this many...
+    gibsPerRadius: 0.45,    // ...plus this many per px of body radius (bigger enemies, more mess)
+    splatScale: 1.3,        // the floor stain is this times the body radius across
+    bigSplat: 12,           // enemies this big (radius) leave extra blotches around the stain
+    shotTail: [0.6, 0.35],  // enemy shots are blood drops: two trailing drops this size (x radius)
+    statusIcons: true,      // a small icon above an enemy for each status it has
+    // a boss dying: everything runs at this speed for this long (real seconds), then normal
+    bossSlowmo: 0.8, bossSlowmoScale: 0.3,
+    bossGibs: 40,
+  },
 };

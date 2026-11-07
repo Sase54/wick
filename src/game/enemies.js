@@ -9,6 +9,7 @@
 import { PixelGrid } from '../engine/pixelgrid.js';
 import { flipX, silhouette, tint, makeShadow, makeGlow } from '../engine/sprites.js';
 import { ENEMY_ART } from '../data/enemyArt.js';
+import { statusTint, drawStatusIcons } from './statusfx.js';
 import { TUNING } from '../data/tuning.js';
 import { enemyDef, BLOOD, threatOf, ROOM_MINION_CAP } from '../data/enemies.js';
 import { CHAMPIONS, CHAMPION_WEIGHTS } from '../data/champions.js';
@@ -1875,6 +1876,7 @@ export class Enemy {
     this.stateT = def.behavior === 'hopper' ? 0.6 + Math.random() : 0;
     this.flash = 0;
     this.spawnT = delay;
+    this.graceT = 0;          // set when you walk in: stands still, harmless (TUNING.enemies.grace*)
     this.dead = false;
     this.fx = 0;
     this.fy = 1;
@@ -1958,31 +1960,27 @@ export class Enemy {
     }
   }
 
-  get tintColor() {
-    const s = this.status;
-    if (s.freeze > 0) return '#bfe8ff';
-    if (s.charm > 0) return '#ff80c0';
-    if (s.fear > 0) return '#7a4a9a';
-    if (s.burn > 0) return '#f05a24';
-    if (s.poison > 0) return '#6aba34';
-    if (s.slow > 0) return '#9ad8f8';
-    return null;
-  }
+  // Its last frame, whitened a little, for the death squash (src/game/gibs.js).
+  deathImage() { return tinted(this.frame(), '#ffffff', 0.45); }
+
+  get tintColor() { return statusTint(this.status); }
 
   get active() { return this.spawnT <= 0 && !this.dead; }
   get hittable() { return this.active && !this.intangible; }
-  get harmful() { return this.active && !this.intangible && !this.harmless && !this.piled && this.z < 14 && this.state !== 'surface' && !this.charmed; }
+  get harmful() { return this.active && !(this.graceT > 0) && !this.intangible && !this.harmless && !this.piled && this.z < 14 && this.state !== 'surface' && !this.charmed; }
 
   update(dt, g) {
     this.t += dt;
     this.flash = Math.max(0, this.flash - dt);
     this.redT = Math.max(0, (this.redT || 0) - dt);
     this.atkT = Math.max(0, this.atkT - dt);
+    if (this.graceT > 0) this.graceT -= dt;
     if (this.spawnT > 0) {
       this.spawnT -= dt;
       return;
     }
     this.updateStatus(dt, g);
+    if (this.graceT > 0) { this.vx = this.vy = 0; return; }   // just walked in: wait a moment
     if (this.dead) return;
     const slow = this.status.slow > 0 ? 0.45 : 1;
     if (this.state !== 'wind') this.aim = null;
@@ -2358,6 +2356,7 @@ export class Enemy {
       ctx.drawImage(tinted(this.frame(), tc, 1), x, y, w, h);
     }
     ctx.globalAlpha = 1;
+    if (alpha > 0.5) drawStatusIcons(ctx, this.status, this.x + ox, y - 2, this.t);
   }
 }
 

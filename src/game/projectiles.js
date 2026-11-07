@@ -18,7 +18,7 @@ const HOMING_TURN = 5; // radians per second
 // Color schemes: [outline, dark, mid, light, highlight]
 export const SHOT_STYLES = {
   wax: ['#5a3414', PAL.flame[1], PAL.flame[2], PAL.wax[3], '#fffbea'],
-  blood: ['#1a0405', PAL.blood[0], PAL.blood[1], PAL.blood[2], '#e0605a'],
+  blood: ['#120203', '#4a0a0e', '#7a1216', '#a82424', '#e06a5a'],   // enemy shots: dark red drops
   blue: ['#0e1a3a', '#2a4aa0', '#3a6ad0', '#8ad0f0', '#e8f8ff'],
   ghost: ['#4a5a6a', '#8a96a4', '#b8c4d0', '#e0e8f0', '#ffffff'],
   green: ['#142008', '#3e5a1c', '#5a8a34', '#9ccf6a', '#e0ffc0'],
@@ -556,6 +556,17 @@ export class Projectiles {
         for (const k of [-1, 1]) ctx.fillRect(Math.round(cx + dx * k - 2), Math.round(cy + dy * k - 2), 4, 4);
         ctx.lineCap = 'butt';
         continue;
+      }
+      if (p.team === 'enemy' && !p.lob) {
+        // enemy shots are drops: two smaller drops trail behind, so they read as falling blood
+        const sp = Math.hypot(p.vx, p.vy) || 1, ux = -p.vx / sp, uy = -p.vy / sp;
+        let d = p.r * 0.6;
+        for (const k of TUNING.enemies.shotTail) {
+          const tr = Math.max(1, Math.round(p.r * k));
+          d += tr + 0.5;
+          ctx.drawImage(orbSprite(tr, p.style), Math.round(p.x + ux * d - tr + ox), Math.round(p.y - p.z + uy * d - tr + oy));
+          d += tr * 0.6;
+        }
       }
       ctx.drawImage(s, x, y);
       ctx.globalAlpha = 1;

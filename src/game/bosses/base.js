@@ -6,6 +6,7 @@ import { BOSS_CHAMPIONS } from '../../data/bosses.js';
 import { audio, sfx } from '../../engine/audio.js';
 import { moveCircle } from '../collision.js';
 import { ROOM_X, ROOM_Y, ROOM_R, ROOM_B } from '../constants.js';
+import { statusTint, drawStatusIcons } from '../statusfx.js';
 
 export const TAU = Math.PI * 2;
 
@@ -574,6 +575,15 @@ export class Boss {
     } else ctx.drawImage(img, x, y);
     // champions wear their color
     if (this.champ && !this.flash && !this.under) ctx.drawImage(tintOf(img, this.champ.color), x, y);
+    // statuses: a pulsing wash of the status color and its icons over the head (chilled = freeze)
+    const st = { poison: this.status.poison, burn: this.status.burn, freeze: this.chillT || 0 };
+    const tc = statusTint(st);
+    if (tc && !this.flash && !this.under) {
+      ctx.globalAlpha = 0.25 + Math.sin(this.t * 10) * 0.08;
+      ctx.drawImage(tintOf(img, tc), x, y);
+      ctx.globalAlpha = 1;
+    }
+    if (!this.dying) drawStatusIcons(ctx, st, this.x + ox, y - 2, this.t);
     const coal = coalSprite();
     for (const m of this.mortars) {
       const k = Math.min(1, m.t / m.dur);
