@@ -254,7 +254,7 @@ export const MECHANICS = {
   // NIB & NUB: a second candle that moves and shoots with you. It shares your hearts.
   twin: {
     init(g, p, m) {
-      m.body = { x: p.x + 16, y: p.y, r: 6, usesDoors: false };
+      m.body = { x: p.x + 16, y: p.y, r: p.r, box: { ...p.box }, usesDoors: false };
       m.lookObj = lookOf(m.look, p);
     },
     enterRoom(g, p, m) {
@@ -413,7 +413,7 @@ export const MECHANICS = {
       m.hist.push({ x: p.x, y: p.y, t: m.clock });
       while (m.hist.length > 2 && m.hist[1].t <= m.clock - m.delay) m.hist.shift();
       const h = m.hist[0];
-      m.body = m.clock >= m.delay && h ? { x: h.x, y: h.y, r: 6 } : null;
+      m.body = m.clock >= m.delay && h ? { x: h.x, y: h.y, r: p.r } : null;
       for (const q of m.queue || []) {
         q.t -= dt;
         if (q.t <= 0 && m.body) p.burst(g, q.dx, q.dy, q.dm, q.sm, { from: m.body, noHook: true, quiet: true, style: 'violet' });

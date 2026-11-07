@@ -50,7 +50,7 @@ export const ENEMIES = {
     name: 'Ratram', hp: 14, speed: 30, radius: 10, behavior: 'charger', contact: 1, blood: 'red', animSpeed: 8, windSfx: 'snort',
     charge: { speed: 165, wind: 0.5, stun: 1.0, maxTime: 1.8 },
   },
-  ratramRotten: { base: 'ratram', name: 'Rotten Ratram', hp: 24, speed: 34, rotten: true, contact: 2, charge: { speed: 190, wind: 0.45, stun: 0.9, maxTime: 1.8 } },
+  ratramRotten: { base: 'ratram', name: 'Rotten Ratram', hp: 24, speed: 34, rotten: true, charge: { speed: 190, wind: 0.45, stun: 0.9, maxTime: 1.8 } },
 
   toad: { name: 'Jar Toad', hp: 12, radius: 9, behavior: 'hopper', contact: 1, blood: 'green', windSfx: 'croak', hop: { every: 1.1, dist: 56, wind: 0.35, air: 0.55, recover: 0.35 } },
   toadRotten: { base: 'toad', name: 'Rotten Toad', hp: 18, rotten: true, landShots: { count: 4, speed: 72 } },

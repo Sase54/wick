@@ -100,4 +100,31 @@ export const TUNING = {
   hud: {
     statArrowTime: 3,       // seconds a green up / red down arrow shows next to a stat that changed
   },
+
+  // ---- 5. Health and damage rules
+  health: {
+    // Damage is counted in half hearts. Chapters 1-3: most enemies and shots deal 1 (half a heart),
+    // some bosses, champions and hazards 2. From this chapter on, every hit is at least a full heart.
+    fullHeartChapter: 4,
+    // Soul / black / bone hearts are lost first, then the Vigil heart, then red. A hit stops at the
+    // edge of a kind: a full-heart hit on a last half soul heart takes only that half (as in Isaac).
+    carryOver: false,
+  },
+
+  // ---- 6. Hitboxes (everything is tested on the floor plane, at the feet / under the shadow)
+  hitboxes: {
+    // Wick gets hurt only by a small circle at his lower body: 8 px across, about 60% of his body
+    // with arms (13 px). The big head is never part of it, so shots clipping it miss.
+    playerHurt: 4,
+    // collision with walls, rocks and pits: a small box around the feet, so Wick can walk right up
+    // to rocks and his head overlaps things behind him
+    feetW: 10, feetH: 6,
+    // reaching pickups, pedestals, buttons and machines; pushing bombs (a bit more than the hurtbox)
+    touch: 6,
+    enemyShotScale: 0.7,   // enemy shots hit with 70% of their visible radius (forgiving)
+    tearScale: 1,          // Wick's shots hit with their full size...
+    enemyHurtScale: 1,     // ...against enemies' full body circles (easy to hit what you aim at)
+    contactInset: 1,       // enemy touch: its body circle must overlap the hurtbox by this many px
+    // Flying enemies, flying Wick and every shot cross pits; walking things can't (src/game/room.js).
+  },
 };

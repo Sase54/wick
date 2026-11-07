@@ -318,7 +318,7 @@ export class Machine {
     const s = this.state, p = g.player;
     if (s.gone) return;
     // solid: push the player out
-    const dx = p.x - this.x, dy = p.y - (this.y - 2), d = Math.hypot(dx, dy), min = this.r + p.r;
+    const dx = p.x - this.x, dy = p.y - (this.y - 2), d = Math.hypot(dx, dy), min = this.r + p.touchR;
     const touching = !p.dead && d < min + 1.5;
     if (!p.dead && d < min && d > 0.01) { p.x = this.x + (dx / d) * min; p.y = this.y - 2 + (dy / d) * min; }
     if (this.anim) {

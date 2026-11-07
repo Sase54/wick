@@ -18,6 +18,7 @@ export function createSettingsMenu(settings, { onChange, onBack, onReset }) {
     { label: 'STICK SIZE', slider: bind('stickSize'), min: 80, max: 180, step: 10, fmt: (v) => `${v}` },
     { label: 'STICK OPACITY', slider: bind('stickOpacity'), min: 0.2, max: 1, step: 0.1, fmt: pct },
     { label: 'SHOW FPS', toggle: bind('showFps') },
+    { label: 'SHOW HITBOXES', toggle: bind('showHitboxes') },
     { label: 'UNLOCK ALL', toggle: bind('unlockAll') },
     { label: 'RESET PROGRESS', action: onReset },
     { label: 'BACK', action: onBack },
@@ -35,6 +36,7 @@ export const SETTING_HINTS = {
   'MUSIC': 'MUSIC VOLUME',
   'SOUNDS': 'SOUND EFFECTS VOLUME',
   'SCREEN SHAKE': 'SHAKE THE SCREEN ON HITS AND EXPLOSIONS',
+  'SHOW HITBOXES': 'TESTING: DRAW EVERY HITBOX AND HURTBOX',
   'UNLOCK ALL': 'TESTING: LOCKED CONTENT CAN APPEAR IN RUNS',
   'RESET PROGRESS': 'ERASE ALL UNLOCKS, STATS AND RECORDS',
 };

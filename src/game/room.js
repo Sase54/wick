@@ -278,22 +278,23 @@ export class Room {
   }
 
   // Keep an entity inside the walls, except through open doorways (player only).
+  // A box entity (the player's feet) uses its half-width across and half-height up/down.
   clampToWalls(e) {
-    const r = e.r;
-    const lim = DOOR_GAP - r;
+    const rx = e.box ? e.box.hw : e.r, ry = e.box ? e.box.hh : e.r;
+    const limX = DOOR_GAP - rx, limY = DOOR_GAP - ry;   // room to move sideways inside a doorway
     const open = (dir, along) => e.usesDoors && this.slots.some((s) => s.dir === dir && s.door && s.door.isOpen
-      && Math.abs(along - (dir === 'up' || dir === 'down' ? s.x : s.y)) <= lim + 0.01);
+      && Math.abs(along - (dir === 'up' || dir === 'down' ? s.x : s.y)) <= (dir === 'up' || dir === 'down' ? limX : limY) + 0.01);
 
     // Already inside a doorway: stay within its sides.
     const inSlot = this.slotAt(e);
     if (inSlot) {
-      if (inSlot.dir === 'up' || inSlot.dir === 'down') e.x = Math.max(inSlot.x - lim, Math.min(inSlot.x + lim, e.x));
-      else e.y = Math.max(inSlot.y - lim, Math.min(inSlot.y + lim, e.y));
+      if (inSlot.dir === 'up' || inSlot.dir === 'down') e.x = Math.max(inSlot.x - limX, Math.min(inSlot.x + limX, e.x));
+      else e.y = Math.max(inSlot.y - limY, Math.min(inSlot.y + limY, e.y));
     }
-    if (e.y - r < this.y0 && !open('up', e.x)) e.y = this.y0 + r;
-    if (e.y + r > this.B && !open('down', e.x)) e.y = this.B - r;
-    if (e.x - r < this.x0 && !open('left', e.y)) e.x = this.x0 + r;
-    if (e.x + r > this.R && !open('right', e.y)) e.x = this.R - r;
+    if (e.y - ry < this.y0 && !open('up', e.x)) e.y = this.y0 + ry;
+    if (e.y + ry > this.B && !open('down', e.x)) e.y = this.B - ry;
+    if (e.x - rx < this.x0 && !open('left', e.y)) e.x = this.x0 + rx;
+    if (e.x + rx > this.R && !open('right', e.y)) e.x = this.R - rx;
   }
 
   redraw() {

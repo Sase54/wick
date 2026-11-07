@@ -10,6 +10,7 @@ import { PAL } from '../data/palette.js';
 import { sfx } from '../engine/audio.js';
 
 import { TUNING } from '../data/tuning.js';
+const HB = TUNING.hitboxes;
 const FALL_GRAVITY = TUNING.tears.fallGravity;
 const HOMING_RANGE = 150;
 const HOMING_TURN = 5; // radians per second
@@ -359,7 +360,7 @@ export class Projectiles {
     const g = this.game;
     for (const e of g.enemies) {
       if (!e.hittable || p.hits.has(e)) continue;
-      const dx = e.x - p.x, dy = e.y - p.y, rr = e.r + p.r;
+      const dx = e.x - p.x, dy = e.y - p.y, rr = e.r * HB.enemyHurtScale + p.r * HB.tearScale;
       if (dx * dx + dy * dy > rr * rr) continue;
       p.hits.add(e);
       // a bomb shot bursts on contact (a piercing one rolls on through)
@@ -376,7 +377,7 @@ export class Projectiles {
     for (const b of g.bosses) {
       if (p.hits.has(b)) continue;
       for (const c of b.hitCircles()) {
-        const dx = c.x - p.x, dy = c.y - p.y, rr = c.r + p.r;
+        const dx = c.x - p.x, dy = c.y - p.y, rr = c.r * HB.enemyHurtScale + p.r * HB.tearScale;
         if (dx * dx + dy * dy > rr * rr) continue;
         p.hits.add(b);
         if (p.bomb) { if (p.pierce) break; this.splash(p, true); return false; }
@@ -437,7 +438,7 @@ export class Projectiles {
     const pl = g.player;
     if (pl.dead) return true;
     for (const body of g.playerBodies()) {
-      const dx = body.x - p.x, dy = body.y - p.y, rr = body.r + p.r - 2;
+      const dx = body.x - p.x, dy = body.y - p.y, rr = body.r + p.r * TUNING.hitboxes.enemyShotScale;
       if (dx * dx + dy * dy > rr * rr) continue;
       pl.hurt(p.damage, p.source, g, p.x, p.y);
       this.splash(p, true);

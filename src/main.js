@@ -164,6 +164,8 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyB') game.teleportTo([...game.floor.cells.values()].find((c) => c.type === 'boss'));
   // L: the whole floor plan (hidden rooms, dead ends, distances, seed)
   if (e.code === 'KeyL') game.toggleDebugFloorMap();
+  // H: show / hide every hitbox (same as Settings > SHOW HITBOXES)
+  if (e.code === 'KeyH') { settings.showHitboxes = !settings.showHitboxes; saveSettings(settings); }
   // V: jump to any floor variant
   if (e.code === 'KeyV') game.openDebugJump();
 });

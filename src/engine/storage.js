@@ -44,6 +44,7 @@ export const DEFAULT_SETTINGS = {
   stickSize: 120,        // touch move-stick diameter in CSS px
   stickOpacity: 0.6,
   showFps: false,
+  showHitboxes: false,   // testing: draw every hitbox (also H with ?debug)
   unlockAll: false,      // testing: treat every unlockable as unlocked
 };
 

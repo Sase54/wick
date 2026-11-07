@@ -1,4 +1,5 @@
-// Circle-vs-tile collision with sliding. Entities are { x, y, r }.
+// Circle-vs-tile collision with sliding. Entities are { x, y, r }, or with `box: { hw, hh }` a box
+// of half-width hw and half-height hh around (x, y) instead (the player's feet).
 import { TILE } from './constants.js';
 
 export const HIT_X = 1;
@@ -13,13 +14,13 @@ export function moveCircle(e, dx, dy, room, mode = 'walk') {
     if (sx) {
       const want = e.x + sx;
       e.x = want;
-      resolve(e, room, mode);
+      resolve(e, room, mode, 'x');
       if (Math.abs(e.x - want) > 0.001) hit |= HIT_X;
     }
     if (sy) {
       const want = e.y + sy;
       e.y = want;
-      resolve(e, room, mode);
+      resolve(e, room, mode, 'y');
       if (Math.abs(e.y - want) > 0.001) hit |= HIT_Y;
     }
   }
@@ -32,7 +33,9 @@ function solidFor(room, mode) {
   return (c, r) => room.isWalkSolid(c, r);
 }
 
-export function resolve(e, room, mode = 'walk') {
+// axis: the axis just moved along ('x' / 'y'), so a box is pushed back the way it came
+export function resolve(e, room, mode = 'walk', axis = null) {
+  if (e.box) return resolveBox(e, room, mode, axis);
   const r = e.r;
   room.clampToWalls(e);
 
@@ -62,6 +65,28 @@ export function resolve(e, room, mode = 'walk') {
         else if (m === up) e.y = ty - r;
         else e.y = ty + TILE + r;
       }
+    }
+  }
+}
+
+// Box version: push out of every solid tile it overlaps, along the axis it moved on (or the
+// shortest way out when it didn't move, e.g. a rock appearing under it).
+function resolveBox(e, room, mode, axis) {
+  room.clampToWalls(e);
+  const { hw, hh } = e.box;
+  const solid = solidFor(room, mode);
+  const c0 = Math.floor((e.x - hw - room.x0) / TILE), c1 = Math.floor((e.x + hw - 0.001 - room.x0) / TILE);
+  const r0 = Math.floor((e.y - hh - room.y0) / TILE), r1 = Math.floor((e.y + hh - 0.001 - room.y0) / TILE);
+  for (let row = r0; row <= r1; row++) {
+    for (let col = c0; col <= c1; col++) {
+      if (!solid(col, row)) continue;
+      const tx = room.x0 + col * TILE, ty = room.y0 + row * TILE;
+      const left = e.x + hw - tx, right = tx + TILE - (e.x - hw);
+      const up = e.y + hh - ty, down = ty + TILE - (e.y - hh);
+      if (left <= 0 || right <= 0 || up <= 0 || down <= 0) continue;
+      const ox = Math.min(left, right), oy = Math.min(up, down);
+      if (axis === 'x' || (!axis && ox <= oy)) e.x += left < right ? -left : right;
+      else e.y += up < down ? -up : down;
     }
   }
 }

@@ -98,7 +98,10 @@ export class Player {
   constructor(x, y, char = CHARACTERS[DEFAULT_CHARACTER], charId = DEFAULT_CHARACTER) {
     this.x = x;
     this.y = y;
-    this.r = 6;
+    const HB = TUNING.hitboxes;
+    this.r = HB.playerHurt;                               // hurtbox (lower body, at the feet)
+    this.box = { hw: HB.feetW / 2, hh: HB.feetH / 2 };    // collision with walls / rocks / pits
+    this.touchR = HB.touch;                               // reaching pickups, pedestals, machines
     this.usesDoors = true;
     this.vx = 0;
     this.vy = 0;
@@ -392,6 +395,7 @@ export class Player {
   // floor's chance of a deal
   hurt(amount, source, game, fromX = this.x, fromY = this.y + 1, self = false) {
     if (this.invuln > 0 || this.dead || this.shieldT > 0 || this.ghostT > 0 || this.danceT > 0) return false;
+    amount = game.hitSize ? game.hitSize(amount) : amount;   // full hearts from the womb on
     if (this.ward > 0) {
       // a ward pops instead of the candle getting hurt
       this.ward--;

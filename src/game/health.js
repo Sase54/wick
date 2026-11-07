@@ -15,6 +15,8 @@
 //   Ribcage itself, then the Vigil heart, then Moldy Hearts (a whole heart per hit), then blood.
 // Red healing fills containers, then Ribcages, then turns Moldy Hearts back into blood.
 // At most 12 heart slots in total (containers + extra + broken).
+import { TUNING } from '../data/tuning.js';
+
 export const MAX_HEARTS = 12;
 
 export class Health {
@@ -196,24 +198,29 @@ export class Health {
 
   // ---- losing ----------------------------------------------------------------
   // Take `n` half hearts of damage. Returns what happened, for effects.
+  // Order: the extra hearts (newest first: Ash, Soot, Ribcage), then the Vigil heart, then red.
+  // With TUNING.health.carryOver off (Isaac's rule) a hit ends when it empties a whole extra heart or
+  // the Vigil heart, so a full-heart hit on a last half Ash Heart takes only that half.
   damage(n) {
     const ev = { golden: 0, black: 0, bones: 0, eternal: 0, rotten: 0, taken: 0 };
     if (this.oneHit) { ev.taken = n; return ev; }
     if (this.golden > 0) { this.golden--; ev.golden = 1; }
-    let left = n;
-    while (left > 0) {
+    const carry = TUNING.health.carryOver;
+    let left = n, stop = false;
+    while (left > 0 && !stop) {
       const last = this.extra[this.extra.length - 1];
       if (last) {
         if (last.t === 'bone') {
           if (last.v > 0) last.v--;
-          else { this.extra.pop(); ev.bones++; }
+          else { this.extra.pop(); ev.bones++; stop = !carry; }
         } else {
           last.v--;
-          if (last.v <= 0) { this.extra.pop(); if (last.t === 'black') ev.black++; }
+          if (last.v <= 0) { this.extra.pop(); if (last.t === 'black') ev.black++; stop = !carry; }
         }
       } else if (this.eternal) {
         this.eternal = 0;
         ev.eternal = 1;
+        stop = !carry;
       } else if (this.rotten > 0) {
         this.rotten--;
         this.red -= 2;

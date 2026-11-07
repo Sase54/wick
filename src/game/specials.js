@@ -77,7 +77,7 @@ export function randomPickup(g) {
 // Props: things in special rooms you can touch. Each has kind, x, y, state (saved as is),
 // update(dt, g), render / renderShadow, and optionally blast(g) for bombs.
 const SHADOW = makeShadow(22, 7, 0.45);
-const touching = (g, o, r) => !g.player.dead && Math.hypot(g.player.x - o.x, g.player.y - o.y) < r + g.player.r;
+const touching = (g, o, r) => !g.player.dead && Math.hypot(g.player.x - o.x, g.player.y - o.y) < r + g.player.touchR;
 
 class Prop {
   constructor(kind, x, y, state = {}) { Object.assign(this, { kind, x, y, state, t: Math.random() * 5, cd: 0.6 }); }

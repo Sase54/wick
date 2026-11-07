@@ -117,6 +117,47 @@ there and the game follows; nothing else needs editing. Sections are added as th
   chances. When a stat changes, a small bobbing **green up arrow** or **red down arrow** shows next to
   it with the change (`+0.57`) for **3 s** (`TUNING.hud.statArrowTime`), fading out at the end.
 
+### 5. Health and damage rules (`TUNING.health`)
+
+- Damage is counted in **half hearts**. In **chapters 1-3** almost every enemy, contact and shot
+  deals **half a heart**; minibosses, the biggest bosses, champions with extra contact damage (Sooty,
+  Hulking), your own bombs and a few hazards (the sentinel beams, the giant's hands) deal a full heart.
+- From **chapter 4** (the womb, `fullHeartChapter`) on, **every hit is at least a full heart**:
+  enemies, shots, spikes, hazards, the thorned curse door and damage you choose to take (blood
+  machines, the sacrifice spike, a bad pill). A full-heart hit gives the longer invincibility (1.33 s).
+- **Damage order** is the same for every source: a Brass Heart cracks first, then the extra hearts
+  from the right (Ash, Soot, Ribcage), then the Vigil heart, then Moldy Hearts, then blood.
+- **No carry-over** (`carryOver: false`, Isaac's rule): a hit stops when it empties a whole extra
+  heart or the Vigil heart. A full-heart hit on a last half Ash Heart takes only that half, not
+  half a blood heart as well. Inside blood hearts a full hit still takes two halves.
+- **Invincible means untouchable**: any damage during the blinking time after a hit (or a shield,
+  ward, dash...) is ignored completely, with no knockback, no effects and no deal-chance penalty.
+- Rotten Ratram now deals half a heart like other normal enemies.
+
+### 6. Hitboxes (`TUNING.hitboxes`)
+
+Everything is tested on the **floor plane**: a thing's position is its feet / its shadow, and the
+sprite (Wick's big head, a shot's height above its shadow) is drawn above that. So a shot passing
+over the top of Wick's head on screen is really behind him on the floor and misses.
+
+- **Wick's hurtbox**: a small circle of radius **4** (8 px across, about 60% of his body with arms)
+  at his lower body / feet. The head is never part of it: a shot that clips the hair or the top of
+  the head misses. Twins and echoes (Nib & Nub, Echo) use the same size.
+- **Wick vs walls, rocks and pits**: a **10x6 box around the feet**, so he can walk right up to
+  rocks (his head overlaps them, they're behind him) and right up under the top wall. Doorways let
+  him in up to 6 px (up/down doors) or 8 px (side doors) off the middle.
+- **Reaching things** (pickups, pedestals, buttons, chests, machines, pushing bombs) uses a
+  slightly bigger circle of radius **6** (`touch`), so grabbing things isn't fiddly.
+- **Enemy shots** hit with **70%** of their visible radius (`enemyShotScale`): forgiving near-misses.
+- **Wick's shots** hit with their full size against enemies' **full body circles** (`tearScale`,
+  `enemyHurtScale`): it's easy to hit what you aim at.
+- **Enemy touch**: only when the enemy's body circle overlaps the hurtbox (by 1 px, `contactInset`).
+- **Pits**: flying enemies, flying Wick and every shot cross them; walking things can't.
+- **Debug view**: Settings > **SHOW HITBOXES** (or **H** with `?debug`) draws them all: red =
+  Wick's hurtbox, yellow = his feet box, green = enemy and boss bodies (faded while they can't hurt
+  you, `F` = flying), cyan = Wick's shots, orange = enemy shots (the faint ring is their visible
+  size), grey = tiles that stop walking, purple = pits.
+
 ---
 
 ## HEARTS
@@ -138,7 +179,8 @@ they were gained, then Melted Hearts.
 
 **Damage order** (like the original): a Brass Heart cracks first, then hearts are lost from the
 right: Ash/Soot halves, Ribcage blood then the Ribcage itself, then the Vigil heart, then Moldy
-Hearts, then blood. **Healing**: blood fills containers, then Ribcages, then cures a Moldy Heart.
+Hearts, then blood. A hit never carries over from an extra heart or the Vigil heart into the
+next kind, and from chapter 4 every hit is a full heart (FEEL AND TUNING section 5). **Healing**: blood fills containers, then Ribcages, then cures a Moldy Heart.
 Gaining a container when all 12 slots are full pushes the rightmost extra heart off.
 You die when nothing is left (no blood, no extra hearts, no Vigil heart).
 
@@ -1560,7 +1602,7 @@ floor's live **deal chances**: a red horned icon with the chance of The Bargain 
 with the chance of The Vigil after this floor's boss, from the same odds the door uses; see Deals),
 item info
 (name / name + text / detailed), touch aim (4-way / 8-way on the shooting pad), move-stick size and control opacity, FPS counter,
-unlock all, reset progress. Sliders and choices: tap left of the middle of `< value >` to go down, right of it to go up.
+show hitboxes (testing, see FEEL AND TUNING section 6), unlock all, reset progress. Sliders and choices: tap left of the middle of `< value >` to go down, right of it to go up.
 
 **Phone layout (844x390):** the shooting pad is 3x60 px buttons in a cross, 40 px above the bottom-right corner;
 the action buttons (SWAP, PKT, USE, B) sit in a row above it, just under the minimap.

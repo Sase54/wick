@@ -46,7 +46,7 @@ import { drawWaxPanel, inkAlpha, INK } from '../ui/wax.js';
 import { BLOOD, ENEMIES, enemyDef } from '../data/enemies.js';
 import { DROP_TABLES, KEY_PITY_ROOMS, SOOT_BLAST_DAMAGE, HEART_KINDS } from '../data/pickups.js';
 import { PAL } from '../data/palette.js';
-import { VIEW_W, VIEW_H, ROOM_X, ROOM_Y, ROOM_W, ROOM_H, T, DIRS } from './constants.js';
+import { VIEW_W, VIEW_H, ROOM_X, ROOM_Y, ROOM_W, ROOM_H, T, DIRS, TILE } from './constants.js';
 import { TUNING } from '../data/tuning.js';
 import { drawHud } from '../ui/hud.js';
 import { PauseScreen } from '../ui/pause.js';
@@ -429,8 +429,8 @@ export class Game {
     const slot = slotKey && this.room.slots.find((s) => s.key === slotKey);
     if (slot) {
       const [dx, dy] = DIRS[slot.dir];
-      p.x = slot.x - dx * (p.r + 12);
-      p.y = slot.y - dy * (p.r + 12);
+      p.x = slot.x - dx * (p.touchR + 12);
+      p.y = slot.y - dy * (p.touchR + 12);
       p.vx *= 0.5;
       p.vy *= 0.5;
     } else {
@@ -640,7 +640,7 @@ export class Game {
     for (const b of this.bombs) {
       b.update(dt, this);
       // Walk into a bomb to push it (once you've stepped off it).
-      const dx = b.x - p.x, dy = b.y - p.y, d = Math.hypot(dx, dy), rr = b.r + p.r;
+      const dx = b.x - p.x, dy = b.y - p.y, d = Math.hypot(dx, dy), rr = b.r + p.touchR;
       if (b.age > 0.5 && d < rr && d > 0.01) {
         b.vx += (dx / d) * 50;
         b.vy += (dy / d) * 50;
@@ -923,13 +923,21 @@ export class Game {
     }
   }
 
+  // How many half hearts a hit of `amount` really takes: from the womb (chapter 4) on, every hit
+  // is at least a full heart (TUNING.health.fullHeartChapter).
+  hitSize(amount) {
+    const ch = this.floorDef?.chapter ?? 1;
+    return ch >= TUNING.health.fullHeartChapter ? Math.max(2, amount) : amount;
+  }
+
   contactDamage() {
     const p = this.player;
+    const HB = TUNING.hitboxes;
     if (p.dead) return;
     for (const body of this.playerBodies()) {
       for (const e of this.enemies) {
         if (!e.harmful) continue;
-        const dx = body.x - e.x, dy = body.y - e.y, rr = body.r + e.r - 3;
+        const dx = body.x - e.x, dy = body.y - e.y, rr = body.r + e.r - HB.contactInset;
         if (dx * dx + dy * dy < rr * rr) {
           p.hurt(e.contact, e.def.name, this, e.x, e.y);
           return;
@@ -938,7 +946,7 @@ export class Game {
       for (const b of this.bosses) {
         if (!b.harmful) continue;
         for (const c of b.hitCircles()) {
-          if (Math.hypot(body.x - c.x, body.y - c.y) < body.r + c.r - 3) {
+          if (Math.hypot(body.x - c.x, body.y - c.y) < body.r + c.r - HB.contactInset) {
             p.hurt(b.def.contact, b.name, this, c.x, c.y);
             return;
           }
@@ -1088,7 +1096,7 @@ export class Game {
     const p = this.player;
     for (const ped of this.room.pedestals) {
       ped.update(dt);
-      const touching = Math.hypot(p.x - ped.x, p.y - ped.y) < p.r + ped.r;
+      const touching = Math.hypot(p.x - ped.x, p.y - ped.y) < p.touchR + ped.r;
       if (!touching) { ped.needLeave = false; continue; }
       if (!ped.item || ped.cooldown > 0 || ped.needLeave || p.dead) continue;
       if (ped.price) {
@@ -1369,7 +1377,7 @@ export class Game {
     if (p.dead) return;
     for (const it of list) {
       if (it.collected || it.age < 0.3 || it.z > 4) continue;
-      const dx = it.x - p.x, dy = it.y - p.y, rr = it.r + p.r;
+      const dx = it.x - p.x, dy = it.y - p.y, rr = it.r + p.touchR;
       if (dx * dx + dy * dy > rr * rr) continue;
       if (it.price) {
         // Shop stock: buy it if you can afford it and can use it.
@@ -1553,10 +1561,11 @@ export class Game {
       if (door.hidden) continue;
       const [dx, dy] = DIRS[pos.dir];
       if (mv.x * dx + mv.y * dy < 0.5) continue;
-      const atWall = dy < 0 ? p.y - p.r <= room.y0 + 2
-        : dy > 0 ? p.y + p.r >= room.B - 2
-        : dx < 0 ? p.x - p.r <= room.x0 + 2
-        : p.x + p.r >= room.R - 2;
+      const { hw, hh } = p.box;
+      const atWall = dy < 0 ? p.y - hh <= room.y0 + 2
+        : dy > 0 ? p.y + hh >= room.B - 2
+        : dx < 0 ? p.x - hw <= room.x0 + 2
+        : p.x + hw >= room.R - 2;
       if (!atWall) continue;
       const off = dx === 0 ? p.x - pos.x : p.y - pos.y;
       if (Math.abs(off) > 24) continue;
@@ -1747,6 +1756,7 @@ export class Game {
     this.renderLighting(ctx, ox, oy);
     this.renderDarkness(ctx, ox, oy);
     ctx.drawImage(getVignette(), 0, 0);
+    if (this.settings.showHitboxes) this.renderHitboxes(ctx, ox, oy);
     this.renderLowHealth(ctx);
     if (this.hurtFlash > 0) {
       ctx.fillStyle = `rgba(150,20,20,${(this.hurtFlash / 0.18) * 0.25})`;
@@ -1782,6 +1792,50 @@ export class Game {
     if (this.debugFloorMap) drawDebugFloorMap(ctx, this);
     if (this.state === 'gameover') this.renderGameOver(ctx);
     if (this.state === 'victory') this.renderVictory(ctx);
+  }
+
+  // Debug: every hitbox on the floor plane (Settings > SHOW HITBOXES, or H with ?debug).
+  // Red: Wick's hurtbox. Yellow: his feet box (walls, rocks, pits). Green: enemy and boss bodies
+  // (dark when they can't hurt you right now). Cyan: Wick's shots. Orange: enemy shots (the faint
+  // ring is their visible size). Grey: tiles that stop walking; purple: pits (fliers cross them).
+  renderHitboxes(ctx, ox, oy) {
+    const room = this.room, HB = TUNING.hitboxes;
+    const ring = (x, y, r, color) => {
+      ctx.strokeStyle = color;
+      ctx.beginPath();
+      ctx.arc(Math.round(x + ox) + 0.5, Math.round(y + oy) + 0.5, Math.max(0.5, r), 0, Math.PI * 2);
+      ctx.stroke();
+    };
+    ctx.save();
+    ctx.lineWidth = 1;
+    for (let row = 0; row < room.rows; row++) {
+      for (let col = 0; col < room.cols; col++) {
+        const pit = room.get(col, row) === T.PIT;
+        if (!pit && !room.isWalkSolid(col, row)) continue;
+        ctx.strokeStyle = pit ? 'rgba(170,110,255,0.6)' : 'rgba(220,220,220,0.35)';
+        ctx.strokeRect(room.x0 + col * TILE + ox + 0.5, room.y0 + row * TILE + oy + 0.5, TILE - 1, TILE - 1);
+      }
+    }
+    for (const e of this.enemies) {
+      ring(e.x, e.y, e.r * HB.enemyHurtScale, e.harmful ? '#5ee05a' : 'rgba(94,224,90,0.4)');
+      if (e.def.flying) drawText(ctx, 'F', Math.round(e.x + ox) - 2, Math.round(e.y + oy) - 3, { color: '#5ee05a' });
+    }
+    for (const b of this.bosses) for (const c of b.hitCircles()) ring(c.x, c.y, c.r * HB.enemyHurtScale, b.harmful ? '#5ee05a' : 'rgba(94,224,90,0.4)');
+    for (const s of this.projectiles.pool.live) {
+      if (s.removed) continue;
+      if (s.team === 'enemy') {
+        ring(s.x, s.y, s.r, 'rgba(255,150,60,0.35)');
+        ring(s.x, s.y, s.r * HB.enemyShotScale, '#ff9a3c');
+      } else ring(s.x, s.y, s.r * HB.tearScale, '#5ad8ff');
+    }
+    const p = this.player;
+    for (const body of this.playerBodies()) {
+      const bx = body.box || p.box;
+      ctx.strokeStyle = '#ffe14a';
+      ctx.strokeRect(Math.round(body.x - bx.hw + ox) + 0.5, Math.round(body.y - bx.hh + oy) + 0.5, bx.hw * 2 - 1, bx.hh * 2 - 1);
+      ring(body.x, body.y, body.r, '#ff3a3a');
+    }
+    ctx.restore();
   }
 
   // The variant's ambient light: a tint over the room, glowing wall candles and the player's flame.

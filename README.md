@@ -271,6 +271,7 @@ and variant). In a run:
 | V | Debug floor picker: jump to any chapter variant (first or second floor of the chapter); its **SPECIAL ROOMS** page opens any special room (deal rooms, boss rush, crawlspace...) behind a free wall of the room you're in |
 | N | Skip to the next floor |
 | L | Debug floor map: every room (secret ones too) colored by kind, steps from the start, dead ends, blocked cells, the ultra secret spot, the seed and how many tries the floor took (L, Esc or a tap closes it; also `WICK.game.toggleDebugFloorMap()` in the console) |
+| H | Show / hide every hitbox and hurtbox (same as Settings > SHOW HITBOXES) |
 | F3 | Toggle the FPS counter |
 
 In the browser console, `WICK.game.giveItem('magnet')` gives a specific item.

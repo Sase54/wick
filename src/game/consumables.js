@@ -232,7 +232,7 @@ export const CONSUMABLE_FX = {
   },
   hurt(g, d) {
     const p = g.player;
-    if (p.health.total > d.amount) p.hurt(d.amount, 'A BITTER PILL', g, p.x, p.y, true);
+    if (p.health.total > g.hitSize(d.amount)) p.hurt(d.amount, 'A BITTER PILL', g, p.x, p.y, true);
   },
   confuse(g, d) { g.player.confuseT = d.time; },
   heavy(g, d) { g.player.heavyT = d.time; },
