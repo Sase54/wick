@@ -5,9 +5,8 @@
 //   lock     'key' | 'coin' | 'health' (full health only) | 'bomb' (hidden wall)
 //   icon     minimap icon (rows of a tiny sprite) and its colors
 //   tint     floor tint for the room
-//   chance   chance per floor to try to add one (the generator adds it as a dead end if
-//            there's room); minFloor / maxFloor / chapters limit where it can show up;
-//            unlock: achievement needed first (src/data/unlocks.js)
+//   minFloor / maxFloor   the floors it can show up on (how likely it is: SPECIAL_ODDS below;
+//            it also needs its unlock, src/data/unlocks.js)
 //   layout   the room (13x7). Extra letters, on top of src/data/rooms.js:
 //            P item pedestal (the room's pool)  Q priced item (deal rooms, black market)
 //            Y sacrifice spike  D dice face  M machine (in order: slot, blood, fortune, beggar)
@@ -31,58 +30,58 @@ export const SPECIAL_TYPES = {
     icon: null,
   },
   curse: {
-    name: 'THE THORNED ROOM', door: 'curse', tint: '#2a0a2a', chance: 0.45, minFloor: 2,
+    name: 'THE THORNED ROOM', door: 'curse', tint: '#2a0a2a', minFloor: 2,
     look: { wall: ['#0a0204', '#1a060a', '#2a0a10', '#3a1016', '#4e1a20'], mortar: '#050102' },
     icon: ['#.#.#', '.###.', '.###.', '#.#.#'], colors: { '#': '#b04ab0' },
     layout: ['.............', '.^^.......^^.', '.^.........^.', '......P......', '.^.........^.', '.^^.......^^.', '.............'],
   },
   sacrifice: {
-    name: 'THE OFFERING ROOM', door: 'sacrifice', tint: '#3a1010', chance: 0.25, minFloor: 2,
+    name: 'THE OFFERING ROOM', door: 'sacrifice', tint: '#3a1010', minFloor: 2,
     icon: ['..#..', '..#..', '.###.', '#####'], colors: { '#': '#e8e0d0' },
     layout: ['.............', '.#.........#.', '.............', '......Y......', '.............', '.#.........#.', '.............'],
   },
   arcade: {
-    name: 'THE PARLOR', door: 'arcade', lock: 'coin', tint: '#3a2a10', chance: 0.4, evenFloors: true,
+    name: 'THE PARLOR', door: 'arcade', lock: 'coin', tint: '#3a2a10',
     icon: ['#####', '#k#k#', '#k#k#', '#####'], colors: { '#': '#f0c040', k: '#5a2010' },
     layout: ['.............', '..M..M..M..M.', '.............', '.............', '.............', '.............', '.............'],
   },
   challenge: {
-    name: 'THE GAUNTLET', door: 'challenge', lock: 'health', tint: '#2a2a30', chance: 0.3, minFloor: 1,
+    name: 'THE GAUNTLET', door: 'challenge', lock: 'health', tint: '#2a2a30', minFloor: 1,
     icon: ['#...#', '.#.#.', '.#.#.', '#...#'], colors: { '#': '#d8d8e8' },
     layout: ['.............', '.#.........#.', '.............', '......P......', '.............', '.#.........#.', '.............'],
   },
   bosschallenge: {
-    name: 'THE GREAT GAUNTLET', door: 'bosschallenge', lock: 'health', tint: '#3a1418', chance: 0.25, minFloor: 3,
+    name: 'THE GREAT GAUNTLET', door: 'bosschallenge', lock: 'health', tint: '#3a1418', minFloor: 2,
     icon: ['#...#', '.###.', '.###.', '#...#'], colors: { '#': '#ff6a5a' },
     layout: ['.............', '.............', '.............', '......P......', '.............', '.............', '.............'],
   },
   library: {
-    name: 'THE READING ROOM', door: 'library', lock: 'key', tint: '#3a2814', chance: 0.2, minFloor: 2,
+    name: 'THE READING ROOM', door: 'library', lock: 'key', tint: '#3a2814', minFloor: 2,
     icon: ['####.', '#kk#.', '#kk#.', '####.'], colors: { '#': '#d8a868', k: '#5a3418' },
     layout: ['.............', '.XX.......XX.', '.............', '....P...P....', '.............', '.XX.......XX.', '.............'],
   },
   vault: {
-    name: 'THE STRONGROOM', door: 'vault', lock: 'key', tint: '#2a2620', chance: 0.2, minFloor: 2,
+    name: 'THE STRONGROOM', door: 'vault', lock: 'key', tint: '#2a2620', minFloor: 2,
     icon: ['#####', '#kkk#', '##k##', '#####'], colors: { '#': '#c8a048', k: '#3a2a10' },
     layout: ['.............', '.............', '...C.L.L.C...', '.............', '...C.....C...', '.............', '.............'],
   },
   dice: {
-    name: "THE GAMBLER'S DEN", door: 'dice', lock: 'key', tint: '#14301c', chance: 0.15, minFloor: 2,
+    name: "THE GAMBLER'S DEN", door: 'dice', lock: 'key', tint: '#14301c', minFloor: 2,
     icon: ['#####', '#k#k#', '##k##', '#####'], colors: { '#': '#f0f0e8', k: '#1a3a1a' },
     layout: ['.............', '.............', '.............', '......D......', '.............', '.............', '.............'],
   },
   nursery: {
-    name: 'THE NURSERY', door: 'bedroom', tint: '#3a2a30', chance: 0.12, minFloor: 3,
+    name: 'THE NURSERY', door: 'bedroom', tint: '#3a2a30',
     icon: ['#....', '#####', '#####', '#...#'], colors: { '#': '#e8b8c8' },
     layout: ['.............', '.............', '.....N.......', '.............', '...G.....G...', '.............', '.............'],
   },
   sickroom: {
-    name: 'THE SICKROOM', door: 'bedroom', tint: '#24281a', chance: 0.12, minFloor: 3,
+    name: 'THE SICKROOM', door: 'bedroom', tint: '#24281a',
     icon: ['#....', '#####', '#####', '#...#'], colors: { '#': '#8a9a5a' },
     layout: ['.............', '.u.........u.', '.....N.......', '.............', '...G.....G...', '.u.........u.', '.............'],
   },
   miniboss: {
-    name: 'THE LAIR', door: 'miniboss', tint: '#2a1414', chance: 0.3, minFloor: 2,
+    name: 'THE LAIR', door: 'miniboss', tint: '#2a1414',
     icon: ['.###.', '#k#k#', '.###.', '.#.#.'], colors: { '#': '#d0c0b0', k: '#3a0c0c' },
     layout: ['.............', '.#.........#.', '.............', '......m......', '.............', '.#.........#.', '.............'],
   },
@@ -171,3 +170,20 @@ export const DICE_FACES = {
 
 // Placeholder machines for The Parlor (the real ones arrive in part 5).
 export const MACHINES = ['slot', 'blood', 'fortune', 'beggar'];
+
+// How likely each special room is on a floor (src/game/specials.js chooseSpecials uses these, in
+// this order: shop, treasure, planetarium, offering/gambler's den, reading room, thorned room,
+// lair, gauntlet, parlor/strongroom, bedroom). "Full" means every red heart is full.
+export const SPECIAL_ODDS = {
+  lateShop: 0.66, lateTreasure: 0.5,          // chapter 4 (always in chapters 1-3)
+  planetarium: 0.01, planetariumSkip: 0.2, planetariumMax: 0.6,   // +per treasure room skipped
+  sacrifice: 0.15, sacrificeFull: 0.15,       // the offering room or the gambler's den
+  dice: 0.2, diceWithKeys: 0.5,               // ...which is the den this often (more with 2+ keys)
+  library: 0.1,
+  curse: 0.4,
+  miniboss: 0.25, minibossFirst: 0.15,        // likelier on the first floor
+  challenge: 0.5,                             // full health only, never floor 1
+  arcade: 0.6,                                // a chapter's second floor with 5+ coins
+  vault: 0.2, vaultWithKeys: 0.5,             // ...which is the strongroom this often
+  bedroom: 0.05, bedroomLow: 0.25,            // likelier on your last heart
+};

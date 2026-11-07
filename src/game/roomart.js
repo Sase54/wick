@@ -5,6 +5,8 @@ import { makeCanvas } from '../engine/sprites.js';
 import { RNG } from '../engine/rng.js';
 import { PAL } from '../data/palette.js';
 import { TILE, T } from './constants.js';
+import { TUNING } from '../data/tuning.js';
+const RT = TUNING.room;
 
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => v / 16);
 
@@ -199,7 +201,8 @@ export function generateRoomBase(rng, style = {}, room) {
         // shade near walls (including the walls of narrow and L-shaped rooms)
         const edge = edgeDist[y * W + x] - 1;
         if (edge < 12) v -= (12 - edge) * 0.022;
-        for (let k = 1; k <= 5; k++) if (y - k >= 0 && !isFloor[(y - k) * W + x]) { v -= (6 - k) * 0.05; break; }
+        // the tall top wall casts a short shadow onto the floor below it
+        for (let k = 1; k <= 8; k++) if (y - k >= 0 && !isFloor[(y - k) * W + x]) { v -= (9 - k) * 0.04; break; }
         const wet = wetF[y * W + x], mildew = mildewF[y * W + x];
         v -= wet * 0.25;
         const shade = Math.max(0, Math.min(4, Math.floor(v * 5 + b - 0.5)));
@@ -209,14 +212,22 @@ export function generateRoomBase(rng, style = {}, room) {
         put(x, y, c);
         continue;
       }
-      // ---- wall: courses of brick or rough stone, darker the deeper into the wall
-      const depth = Math.min(1, dd / 30);
+      // ---- wall. The fake 3/4 view: each wall shows a lit face of its own height (the top wall's
+      // is the tallest, the bottom wall's the shortest), then a lip, then the dark top of the wall.
+      const ex = x < X0 ? (X0 - x) / X0 : x >= X1 ? (x - X1 + 1) / (W - X1) : 0;
+      const ey = y < Y0 ? (Y0 - y) / Y0 : y >= Y1 ? (y - Y1 + 1) / (H - Y1) : 0;
+      let face, lift;
+      if (ex === 0 && ey === 0) { face = RT.faceSide * 0.6; lift = 0; }   // a wall inside the box (L-shaped, narrow)
+      else if (ey >= ex) [face, lift] = y < Y0 ? [RT.faceTop, 0.35] : [RT.faceBottom, -0.45];
+      else [face, lift] = [RT.faceSide, -0.1];
+      const wallAdj = dd <= face ? lift - (dd / face) * 0.7 : lift - 1.3 - Math.min(1, (dd - face) / 26) * 1.6;
       let c;
       if (dd <= 1.5) c = WL[4];
       else if (dd <= 2.5) c = WL[3];
+      else if (dd > face && dd <= face + 1.5) c = WL[lift < 0 ? 2 : 3];   // the lip where the face meets the wall top
       else if (look.wallPattern === 'cave') {
         // raw rock: no courses, just lumps and dark fissures
-        const v = 1.6 + (big(x, y) - 0.5) * 2.4 + (small(x, y) - 0.5) * 1.2 - depth * 2.6 + (b - 0.5) * 0.6;
+        const v = 1.6 + (big(x, y) - 0.5) * 2.4 + (small(x, y) - 0.5) * 1.2 + wallAdj + (b - 0.5) * 0.6;
         const fissure = Math.abs(small(x * 2, y) - 0.5) < 0.03;
         c = fissure ? MORTAR : WL[Math.max(0, Math.min(3, Math.floor(v)))];
       } else if (look.wallPattern === 'skulls') {
@@ -231,37 +242,37 @@ export function generateRoomBase(rng, style = {}, room) {
           const socket = ly === 4 && (lx === 3 || lx === 6);
           v = skull ? (socket ? -1 : 2.6 - dy * 0.25) : -1;
         }
-        v += (small(x, y) - 0.5) * 0.6 - depth * 2.6 + (b - 0.5) * 0.4;
+        v += (small(x, y) - 0.5) * 0.6 + wallAdj + (b - 0.5) * 0.4;
         c = v < 0 ? MORTAR : WL[Math.max(0, Math.min(3, Math.floor(v)))];
       } else if (look.wallPattern === 'flesh') {
         // ribbed muscle: rounded bands running along the wall, with veins
         const band = Math.sin((y + Math.sin(x * 0.08) * 4) * 0.45);
         const vein = Math.abs(small(x * 1.5, y) - 0.5) < 0.025;
-        const v = 1.8 + band * 0.9 + (big(x, y) - 0.5) * 0.8 - depth * 2.6 + (b - 0.5) * 0.4;
+        const v = 1.8 + band * 0.9 + (big(x, y) - 0.5) * 0.8 + wallAdj + (b - 0.5) * 0.4;
         c = vein ? MORTAR : WL[Math.max(0, Math.min(3, Math.floor(v)))];
       } else if (look.wallPattern === 'blocks') {
         // massive ashlar blocks, three courses high
         const row = Math.floor(y / 14), off = (row % 3) * 11;
         const col = Math.floor((x + off) / 30);
         const isMortar = y % 14 === 0 || (x + off) % 30 === 0;
-        const v = 1.4 + hash2(col, row) * 1.4 + (small(x, y) - 0.5) * 0.7 - depth * 2.6 + (b - 0.5) * 0.5 + (y % 14 === 1 ? 0.6 : 0);
+        const v = 1.4 + hash2(col, row) * 1.4 + (small(x, y) - 0.5) * 0.7 + wallAdj + (b - 0.5) * 0.5 + (y % 14 === 1 ? 0.6 : 0);
         c = isMortar ? MORTAR : WL[Math.max(0, Math.min(3, Math.floor(v)))];
       } else if (look.wallPattern === 'marble') {
         // smooth marble panels framed by thin pilasters
         const px = x % 40, panelEdge = px < 2 || px > 37, rail = y % 26 < 2;
-        const v = 2 + (small(x, y) - 0.5) * 0.6 - depth * 2.6 + (b - 0.5) * 0.4 + (panelEdge || rail ? 0.9 : 0) - (px === 2 || px === 37 ? 0.8 : 0);
+        const v = 2 + (small(x, y) - 0.5) * 0.6 + wallAdj + (b - 0.5) * 0.4 + (panelEdge || rail ? 0.9 : 0) - (px === 2 || px === 37 ? 0.8 : 0);
         c = WL[Math.max(0, Math.min(3, Math.floor(v)))];
       } else if (look.wallPattern === 'stone') {
         const row = Math.floor(y / 11), off = (row & 1) * 9;
         const col = Math.floor((x + off) / 18);
         const isMortar = y % 11 === 0 || (x + off) % 18 === 0;
-        const v = 1.2 + hash2(col, row) * 1.8 + (small(x, y) - 0.5) * 1.0 - depth * 2.6 + (b - 0.5) * 0.6;
+        const v = 1.2 + hash2(col, row) * 1.8 + (small(x, y) - 0.5) * 1.0 + wallAdj + (b - 0.5) * 0.6;
         c = isMortar ? MORTAR : WL[Math.max(0, Math.min(3, Math.floor(v)))];
       } else {
         const row = Math.floor(y / 8), off = (row & 1) * 8;
         const col = Math.floor((x + off) / 16);
         const isMortar = y % 8 === 0 || (x + off) % 16 === 0;
-        const v = 1.3 + hash2(col, row) * 1.9 + (small(x, y) - 0.5) * 0.8 - depth * 2.6 + (b - 0.5) * 0.6;
+        const v = 1.3 + hash2(col, row) * 1.9 + (small(x, y) - 0.5) * 0.8 + wallAdj + (b - 0.5) * 0.6;
         c = isMortar ? MORTAR : WL[Math.max(0, Math.min(3, Math.floor(v)))];
       }
       put(x, y, c);
@@ -269,14 +280,11 @@ export function generateRoomBase(rng, style = {}, room) {
   }
   ctx.putImageData(img, 0, 0);
 
-  // Corner seams where the outer walls meet
+  // Corner seams where the outer walls meet (from each screen corner to the floor's corner)
   ctx.fillStyle = css(MORTAR);
-  for (let i = 0; i < Y0; i++) {
-    const x = Math.round(X0 * (i / Y0));
-    ctx.fillRect(x, i, 1, 1);
-    ctx.fillRect(W - 1 - x, i, 1, 1);
-    ctx.fillRect(x, H - 1 - i, 1, 1);
-    ctx.fillRect(W - 1 - x, H - 1 - i, 1, 1);
+  for (const [ax, ay, bx, by] of [[0, 0, X0, Y0], [W - 1, 0, X1 - 1, Y0], [0, H - 1, X0, Y1 - 1], [W - 1, H - 1, X1 - 1, Y1 - 1]]) {
+    const n = Math.max(Math.abs(bx - ax), Math.abs(by - ay));
+    for (let i = 0; i < n; i++) ctx.fillRect(Math.round(ax + (bx - ax) * (i / n)), Math.round(ay + (by - ay) * (i / n)), 1, 1);
   }
 
   const floorPx = (x, y) => floorAt(Math.round(x), Math.round(y));

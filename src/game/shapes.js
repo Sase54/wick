@@ -75,3 +75,11 @@ export function slotCell(slot, name) {
     default: return [cols - 1, slot.uy * ROWS + 3];
   }
 }
+
+// The doorway of a slot: the tile in the doorway and the one in front of it. Rooms keep these
+// clear of rocks, pits, spikes and jars (src/game/room.js), so every door can be walked through.
+export function doorwayTiles(slot, name) {
+  const [c, r] = slotCell(slot, name);
+  const [dc, dr] = { up: [0, 1], down: [0, -1], left: [1, 0], right: [-1, 0] }[slot.dir];
+  return [[c, r], [c + dc, r + dr]];
+}

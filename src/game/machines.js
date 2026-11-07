@@ -57,14 +57,14 @@ const GIVE = {
   nothing: () => null,
   pickup: (g, m, o) => { for (let i = 0; i < count(g, o.n); i++) g.spawnPickup(o.type, m.x, m.y + 14); return 'pickup'; },
   random: (g, m, o) => { for (let i = 0; i < count(g, o.n); i++) g.spawnPickup(randomPickup(g), m.x, m.y + 14); return 'pickup'; },
-  item: (g, m, o) => { g.room.pedestals.push(new Pedestal(m.x, m.y + 30, g.itemPools.draw(o.pool))); return 'item'; },
+  item: (g, m, o) => { { const s = g.room.findFreeSpot(m.x, m.y + 30); g.room.pedestals.push(new Pedestal(s.x, s.y, g.itemPools.draw(o.pool))); } return 'item'; },
   enemy: (g, m, o) => {
-    for (let i = 0; i < count(g, o.n); i++) { const e = g.spawnEnemy(o.type, m.x + (i ? 12 : -12), m.y + 14, { delay: 0.3 }); e.minion = true; }
+    for (let i = 0; i < count(g, o.n); i++) { const e = g.spawnEnemy(o.type, m.x + (i ? 12 : -12), m.y + 14, { delay: 0.3, safe: true }); e.minion = true; }
     g.room.cleared = false;
     return 'bad';
   },
   gnats: (g, m, o) => { for (let i = 0; i < count(g, o.n) && g.gnats.length < 12; i++) g.gnats.push(new Gnat(m.x, m.y)); sfx('gnat'); return 'pickup'; },
-  chest: (g, m, o) => { addProp(g.room, new Chest(m.x + g.lootRng.int(-14, 14), m.y + 30, { type: o.type || (o.locked ? 'gold' : 'wood'), open: false })); return 'pickup'; },
+  chest: (g, m, o) => { const s = g.room.findFreeSpot(m.x + g.lootRng.int(-14, 14), m.y + 30); addProp(g.room, new Chest(s.x, s.y, { type: o.type || (o.locked ? 'gold' : 'wood'), open: false })); return 'pickup'; },
   fortune: (g) => { g.banner = { text: g.lootRng.pick(FORTUNES), sub: '', t: 0, dur: 3 }; return null; },
   charge: (g, m, o) => {
     // a jolt for your active item (or the pocket one); nothing to charge, a battery instead
@@ -77,7 +77,8 @@ const GIVE = {
   },
   prize: (g, m) => {
     if (!m.state.prize) return null;
-    g.room.pedestals.push(new Pedestal(m.x, m.y + 30, m.state.prize));
+    const s = g.room.findFreeSpot(m.x, m.y + 30);
+    g.room.pedestals.push(new Pedestal(s.x, s.y, m.state.prize));
     m.state.prize = null;
     m.state.done = true;
     return 'item';

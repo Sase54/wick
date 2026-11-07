@@ -1,7 +1,7 @@
 // Special rooms beyond treasure/shop/boss/secret: what's inside each one, the things you can
 // touch in them (props), challenge and boss waves, deals, red rooms and the rare error room.
 // Room types, names, doors and layouts are data: src/data/specialRooms.js.
-import { SPECIAL_TYPES, SACRIFICE_TABLE, DICE_FACES } from '../data/specialRooms.js';
+import { SPECIAL_TYPES, SPECIAL_ODDS, SACRIFICE_TABLE, DICE_FACES } from '../data/specialRooms.js';
 import { ARCADE_MACHINES } from '../data/machines.js';
 import { Machine } from './machines.js';
 import { spikeAltar, dieFace, bed, chest, statue, hatch } from './propart.js';
@@ -15,6 +15,7 @@ import { drawText } from '../ui/text.js';
 import { sfx } from '../engine/audio.js';
 import { DIRS } from './constants.js';
 import { progress } from './progress.js';
+import { FLOORS } from '../data/floors.js';
 import { CHESTS, CHEST_ROLL, CHEST_LUCK } from '../data/chests.js';
 import { CONSUMABLE_DROP } from '../data/consumables.js';
 import { Bomb } from './bombs.js';
@@ -41,13 +42,14 @@ const REWARDS = {
   key: (g, x, y) => pop(g, 'key', x, y),
   ash: (g, x, y) => pop(g, 'ash', x, y),
   brass: (g, x, y) => pop(g, 'brass', x, y),
-  chest: (g, x, y) => addProp(g.room, new Chest(x, y + 26, { type: 'wood' })),
+  chest: (g, x, y) => { const s = g.room.findFreeSpot(x, y + 26); addProp(g.room, new Chest(s.x, s.y, { type: 'wood' })); },
   // a free item of The Vigil, unless you've made a deal with the other side
   angelItem: (g, x, y) => {
     if (g.devilTaken) { pop(g, 'soot', x, y); return; }
-    g.room.pedestals.push(new Pedestal(x, y + 30, g.itemPools.draw('angel')));
+    const s = g.room.findFreeSpot(x, y + 30);
+    g.room.pedestals.push(new Pedestal(s.x, s.y, g.itemPools.draw('angel')));
   },
-  devilItem: (g, x, y) => g.room.pedestals.push(new Pedestal(x, y + 30, g.itemPools.draw('devil'))),
+  devilItem: (g, x, y) => { const s = g.room.findFreeSpot(x, y + 30); g.room.pedestals.push(new Pedestal(s.x, s.y, g.itemPools.draw('devil'))); },
   // something wakes up: the variant's miniboss
   lair: (g, x, y) => {
     const mb = g.variant.minibosses?.[0];
@@ -149,7 +151,7 @@ function rollDice(g, face, die) {
     // the whole floor rearranges itself (same floor, new rooms)
     g.forcedVariants[g.floorNum] = g.variant.id;
     g.rebuildFloor = true;
-  } else if (face === 6) g.room.pedestals.push(new Pedestal(die.x, die.y - 36, g.itemPools.draw('treasure')));
+  } else if (face === 6) { const s = g.room.findFreeSpot(die.x, die.y - 36); g.room.pedestals.push(new Pedestal(s.x, s.y, g.itemPools.draw('treasure'))); }
 }
 
 // The Nursery / The Sickroom: a bed you can lie down in once.
@@ -165,7 +167,7 @@ export class Bed extends Prop {
     if (this.state.dirty) {
       // a sick bed: ash, and something crawls out of the sheets
       h.addSoul(4, 'soul');
-      for (let i = 0; i < 2; i++) { const e = g.spawnEnemy('crawlspider', this.x + (i ? 16 : -16), this.y + 10, { delay: 0.4 }); e.minion = true; }
+      for (let i = 0; i < 2; i++) { const e = g.spawnEnemy('crawlspider', this.x + (i ? 16 : -16), this.y + 10, { delay: 0.4, safe: true }); e.minion = true; }
       g.room.cleared = false;
       g.banner = { text: 'A FITFUL SLEEP', sub: 'SOMETHING WAS IN THE SHEETS', t: 0, dur: 2.4 };
     } else {
@@ -236,7 +238,7 @@ export class Chest extends Prop {
     }
     if (o.enemies) {
       const [type, k] = o.enemies;
-      for (let i = 0; i < k; i++) g.spawnEnemy(type, this.x + r.int(-10, 10), this.y + 10);
+      for (let i = 0; i < k; i++) g.spawnEnemy(type, this.x + r.int(-10, 10), this.y + 10, { safe: true });
       sfx('hiss');
     }
     if (o.deal && !openDealRoom(g)) g.spawnPickup('soot', this.x, this.y + 4);
@@ -265,7 +267,8 @@ export class Statue extends Prop {
     const b = createBoss(id, this.x, this.y + 6, { hpMul: Math.max(1, (g.floorDef.bossHp || 1) * 0.7), tier: g.floorDef.bossTier || 0 });
     b.onDefeat = (gg, boss) => {
       const reward = gg.player.items.includes(boss.def.drops) ? gg.itemPools.draw('angel') : boss.def.drops;
-      gg.room.pedestals.push(new Pedestal(boss.x, boss.y, reward));
+      const s = gg.room.findFreeSpot(boss.x, boss.y);
+      gg.room.pedestals.push(new Pedestal(s.x, s.y, reward));
       if (gg.bosses.length) return;   // the other statue is still fighting
       gg.room.cleared = true;
       for (const d of Object.values(gg.cell.doors)) d.closed = false;
@@ -348,7 +351,7 @@ export function populateSpecialRoom(g, cell) {
   // the curse room: half the time chests instead of an item
   if (type === 'curse' && r.chance(0.4)) {
     const ped = room.pedestals.pop();
-    if (ped) { g.itemPools.taken.delete(ped.item); addProp(room, new Chest(ped.x - 20, ped.y, { type: 'red', open: false })); addProp(room, new Chest(ped.x + 20, ped.y, { type: 'red', open: false })); }
+    if (ped) { g.itemPools.taken.delete(ped.item); for (const dx of [-20, 20]) { const s = room.findFreeSpot(ped.x + dx, ped.y); addProp(room, new Chest(s.x, s.y, { type: 'red', open: false })); } }
   }
   // the lair: the variant's miniboss waits here
   for (const s of at('m')) {
@@ -451,7 +454,7 @@ export function updateWaves(g, dt) {
 function finishWaves(g, kind) {
   const room = g.room;
   if (kind === 'bossrush') {
-    for (const dx of [-30, 30]) room.pedestals.push(new Pedestal(room.centerX + dx, room.centerY, g.itemPools.draw('boss')));
+    for (const dx of [-30, 30]) { const s = room.findFreeSpot(room.centerX + dx, room.centerY); room.pedestals.push(new Pedestal(s.x, s.y, g.itemPools.draw('boss'))); }
     progress.event('bossRush');
     g.banner = { text: 'THE PROCESSION ENDS', sub: '', t: 0, dur: 2.5 };
   } else if (kind === 'bosschallenge') {
@@ -600,27 +603,45 @@ export function useRedKey(g) {
 }
 
 // ---------------------------------------------------------------------------
-// Which extra special rooms a floor tries to have (the generator adds what fits).
-export function chooseExtras(g, n, def) {
-  const r = g.rng.fork('extras:' + n);
-  const out = [];
+// Which special rooms a floor gets, in the order they take the dead ends (farthest first, after
+// the boss and super secret rooms, which the generator always places). A room that fails its
+// roll simply isn't in the list, so the next one takes its dead end. What doesn't fit in the
+// dead ends doesn't appear. The chances live in src/data/specialRooms.js (SPECIAL_ODDS).
+export function chooseSpecials(g, n, def, { labyrinth = false } = {}) {
+  if (def.specials) return [...def.specials];          // a floor with a fixed set (the finale)
+  const r = g.rng.fork('specials:' + n);
+  const O = SPECIAL_ODDS;
+  const p = g.player, h = p.health;
+  const full = h.red >= h.containers * 2;
+  const low = h.total <= 2;
+  const early = def.chapter <= 3;
+  const second = FLOORS[n - 2]?.chapter === def.chapter;     // the chapter's second floor
   const ok = (id) => {
     const s = SPECIAL_TYPES[id];
+    if (!s) return !!id;
     if (s.minFloor && n < s.minFloor) return false;
     if (s.maxFloor && n > s.maxFloor) return false;
-    if (s.evenFloors && n % 2) return false;
-    if (!progress.isUnlocked('room', id)) return false;
-    return true;
+    return progress.isUnlocked('room', id);
   };
-  const tryAdd = (id, chance) => { if (ok(id) && r.chance(chance)) out.push(id); };
+  const out = [];
+  const add = (id) => { if (ok(id)) out.push(id); };
+  // the shop and the treasure room: always in chapters 1-3
+  if (early || r.chance(O.lateShop)) add('shop');
+  if (early || r.chance(O.lateTreasure)) { add('treasure'); if (labyrinth) add('treasure'); }
   // the planetarium: rare, likelier for every treasure room you've skipped
-  const planet = g.runFlags.planetVisited ? 0.01 : Math.min(0.6, 0.01 + 0.2 * (g.runFlags.treasureSkipped || 0));
-  tryAdd('planetarium', planet);
-  if (ok('bosschallenge') && r.chance(SPECIAL_TYPES.bosschallenge.chance)) out.push('bosschallenge');
-  else tryAdd('challenge', SPECIAL_TYPES.challenge.chance);
-  for (const id of ['curse', 'arcade', 'miniboss', 'sacrifice', 'library', 'vault', 'dice']) tryAdd(id, SPECIAL_TYPES[id].chance);
-  if (def.chapter >= 2 && r.chance(0.25)) out.push(r.chance(0.5) ? 'nursery' : 'sickroom');
-  return r.shuffle(out).slice(0, 5);
+  if (early && r.chance(g.runFlags.planetVisited ? O.planetarium : Math.min(O.planetariumMax, O.planetarium + O.planetariumSkip * (g.runFlags.treasureSkipped || 0)))) add('planetarium');
+  // the offering room or the gambler's den
+  if (r.chance(O.sacrifice + (full ? O.sacrificeFull : 0))) add(p.keys >= 2 && r.chance(O.diceWithKeys) ? 'dice' : r.chance(O.dice) ? 'dice' : 'sacrifice');
+  if (r.chance(O.library)) add('library');
+  if (r.chance(O.curse)) add('curse');
+  if (r.chance(O.miniboss + (n === 1 ? O.minibossFirst : 0))) add('miniboss');
+  // the gauntlet: only at full health, never on the first floor; the great one on a chapter's second floor
+  if (full && n > 1 && r.chance(O.challenge)) add(second ? 'bosschallenge' : 'challenge');
+  // the parlor or the strongroom: a chapter's second floor, with 5+ coins
+  if (second && p.coins >= 5 && r.chance(O.arcade)) add(r.chance(p.keys >= 2 ? O.vaultWithKeys : O.vault) ? 'vault' : 'arcade');
+  // a bedroom: rare, likelier when you're nearly out
+  if (early && r.chance(O.bedroom + (low ? O.bedroomLow : 0))) add(r.chance(0.5) ? 'nursery' : 'sickroom');
+  return out;
 }
 
 // ---------------------------------------------------------------------------

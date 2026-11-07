@@ -30,6 +30,7 @@ export function serializeRun(g) {
     seed: g.seed,
     character: g.characterId,
     floorNum: g.floorNum,
+    floorName: g.floorDef?.name,   // shown under CONTINUE on the title screen
     variants: { ...g.variantLog },
     bosses: { ...g.bossLog },
     cell: g.cell.key,
@@ -57,6 +58,8 @@ export function serializeRun(g) {
     rng: { loot: g.lootRng.state, items: g.itemPools.rng.state },
     taken: [...g.itemPools.taken],
     floorLoot: g.floorLoot,
+    // the floor is rebuilt from the seed plus the special rooms it rolled and how often the die reshuffled it
+    floorPlan: { specials: g.floorDef.specials, rearranged: g.rearrangeCount || 0 },
     keySeen: g.keySeen,
     roomsCleared: g.roomsCleared,
     stats: { ...g.stats, items: [...g.stats.items] },
@@ -93,8 +96,11 @@ export function serializeRun(g) {
 export function restoreRun(g, s) {
   if (!s || !s.seed || !s.floorNum) return false;
   g.restoring = true;
+  // the saved floor's plan goes to whichever startFloor builds it
+  if (s.floorNum === 1) g.restoreFloor = s.floorPlan || null;
   g.newRun(s.seed, { character: s.character, fresh: false, variants: s.variants || {}, bosses: s.bosses || {} });
-  if (s.floorNum > 1) g.startFloor(s.floorNum);
+  if (s.floorNum > 1) { g.restoreFloor = s.floorPlan || null; g.startFloor(s.floorNum); }
+  g.restoreFloor = null;
 
   // RNG streams, item pools and floor loot exactly as they were
   g.lootRng.state = s.rng.loot;

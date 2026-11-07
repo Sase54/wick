@@ -2,11 +2,14 @@
 import { RNG, randomSeedString } from '../engine/rng.js';
 import { Particles } from '../engine/particles.js';
 import { makeCanvas, makeGlow } from '../engine/sprites.js';
+import { UI_X, UI_Y } from '../engine/canvas.js';
 import { loadStore, saveStore, clearStore } from '../engine/storage.js';
 import { progress } from './progress.js';
 import { serializeRun, restoreRun } from './save.js';
 import { CHARACTERS, DEFAULT_CHARACTER } from '../data/characters.js';
 import { Floor } from './floor.js';
+import { shapeSlots, doorwayTiles } from './shapes.js';
+import { drawDebugFloorMap } from '../ui/debugmap.js';
 import { Player } from './player.js';
 import { Projectiles } from './projectiles.js';
 import { Effects } from './effects.js';
@@ -35,7 +38,7 @@ import { ItemPicker } from '../ui/itemPicker.js';
 import { Machine } from './machines.js';
 import { ROOM_MUSIC } from '../data/music.js';
 import { WANDERERS, WANDERER_CHANCE } from '../data/machines.js';
-import { populateSpecialRoom, updateWaves, startWaves, chooseExtras, maybeOpenDeal, openSideRoom, maybeErrorRoom, canPay, pay, loadProp, addProp, Hatch, Chest, rollChest, randomPickup } from './specials.js';
+import { populateSpecialRoom, updateWaves, startWaves, chooseSpecials, maybeOpenDeal, openSideRoom, maybeErrorRoom, canPay, pay, loadProp, addProp, Hatch, Chest, rollChest, randomPickup } from './specials.js';
 import { Crawlspace } from './crawlspace.js';
 import { CONSUMABLE_FX, fillPickup, takeConsumable, takeTrinket, usePocket, switchPocket, setupPills, absorbTrinket } from './consumables.js';
 import { Menu } from '../ui/menu.js';
@@ -44,13 +47,14 @@ import { BLOOD, enemyDef } from '../data/enemies.js';
 import { DROP_TABLES, KEY_PITY_ROOMS, SOOT_BLAST_DAMAGE, HEART_KINDS } from '../data/pickups.js';
 import { PAL } from '../data/palette.js';
 import { VIEW_W, VIEW_H, ROOM_X, ROOM_Y, ROOM_W, ROOM_H, T, DIRS } from './constants.js';
+import { TUNING } from '../data/tuning.js';
 import { drawHud } from '../ui/hud.js';
 import { PauseScreen } from '../ui/pause.js';
 import { weaponEnterRoom } from './weapons.js';
 import { audio, sfx } from '../engine/audio.js';
 import { drawText } from '../ui/text.js';
 
-const TRANSITION_TIME = 0.32;
+const TRANSITION_TIME = TUNING.camera.transition;
 const DEATH_TIME = 2.2;
 // beat The Chandler within this many seconds of the run (and own the unlock) for the boss rush
 const BOSS_RUSH_TIME = 22 * 60;
@@ -72,11 +76,15 @@ function getLightGlow(r, color) {
 function getVignette() {
   if (vignette) return vignette;
   const [c, ctx] = makeCanvas(VIEW_W, VIEW_H);
-  const g = ctx.createRadialGradient(VIEW_W / 2, VIEW_H / 2, VIEW_W * 0.19, VIEW_W / 2, VIEW_H / 2, VIEW_W * 0.63);
+  // an ellipse that fits the screen, so the corners darken evenly on a wide screen
+  const L = TUNING.lighting;
+  ctx.translate(VIEW_W / 2, VIEW_H / 2);
+  ctx.scale(1, VIEW_H / VIEW_W);
+  const g = ctx.createRadialGradient(0, 0, (VIEW_W / 2) * L.vignetteInner, 0, 0, VIEW_W * 0.72);
   g.addColorStop(0, 'rgba(0,0,0,0)');
-  g.addColorStop(1, 'rgba(0,0,0,0.6)');
+  g.addColorStop(1, `rgba(0,0,0,${L.vignette})`);
   ctx.fillStyle = g;
-  ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+  ctx.fillRect(-VIEW_W, -VIEW_W, VIEW_W * 2, VIEW_W * 2);
   vignette = c;
   return c;
 }
@@ -220,10 +228,12 @@ export class Game {
   // The boss of floor n: from the chapter's pool, weighted toward bosses that fit the floor's
   // variant, never one already met this run while others remain; the last floor gets the final boss.
   // From chapter 3 on, a floor's boss is sometimes a pair ("a+b"): both at once, at reduced health.
-  bossFor(n) {
-    if (this.bossLog[n]) return this.bossLog[n];
+  // own: the first of a Sprawl floor's two boss rooms, which holds the floor's own boss.
+  bossFor(n, own = false) {
+    const key = own ? `${n}a` : n;
+    if (this.bossLog[key]) return this.bossLog[key];
     // the current floor may have changed its boss (the Sprawl curse takes the next floor's)
-    const def = n === this.floorNum && this.floorDef ? this.floorDef : FLOORS[n - 1];
+    const def = !own && n === this.floorNum && this.floorDef ? this.floorDef : FLOORS[n - 1];
     let id = FINAL_BOSS;
     if (def.giant) id = def.giant;
     else if (!def.final) {
@@ -232,7 +242,7 @@ export class Game {
       const used = new Set(Object.values(this.bossLog).flatMap((v) => v.split('+')));
       const fresh = pool.filter((b) => !used.has(b));
       const bias = this.variant?.bossBias || {};
-      const r = this.rng.fork('boss:' + n);
+      const r = this.rng.fork('boss:' + key);
       const pick = (list) => r.weighted(list.map((b) => ({ id: b, weight: bias[b] || 1 }))).id;
       id = pick(fresh.length ? fresh : pool);
       if (def.chapter >= DOUBLE_BOSS_CHAPTER && r.chance(DOUBLE_BOSS_CHANCE)) {
@@ -240,7 +250,7 @@ export class Game {
         if (rest.length) id = `${id}+${pick(rest)}`;
       }
     }
-    this.bossLog[n] = id;
+    this.bossLog[key] = id;
     return id;
   }
 
@@ -290,14 +300,15 @@ export class Game {
     this.variant = this.pickVariant(n);
     this.variantLog[n] = this.variant.id;
     const inChapter = FLOORS.slice(0, n - 1).filter((f) => f.chapter === def.chapter).length;
-    this.floorDef = { ...def, name: def.title || `${this.variant.name} ${ROMAN[inChapter] || ''}`.trim(), variant: this.variant.id };
+    this.floorDef = { ...def, floorNum: n, name: def.title || `${this.variant.name} ${ROMAN[inChapter] || ''}`.trim(), variant: this.variant.id };
     // a curse, sometimes (src/data/curses.js)
     this.curse = this.pickCurse(n);
     if (this.curse === 'labyrinth') {
       // the Sprawl: this floor swallows the next one: bigger, and its boss is the next floor's
       const next = FLOORS[n];
+      // (twice the rooms and two boss rooms back to back: this floor's boss, then the next one's)
       Object.assign(this.floorDef, {
-        rooms: [Math.round(def.rooms[0] * 1.5), Math.round(def.rooms[1] * 1.5)],
+        labyrinth: true, ownBossHp: def.bossHp, ownBossTier: def.bossTier,
         name: `${this.variant.name} XL`, skipTo: n + 2,
         giant: next.giant, bossHp: next.bossHp, bossTier: next.bossTier, threat: next.threat, enemyHp: next.enemyHp,
       });
@@ -306,8 +317,15 @@ export class Game {
     Pedestal.veiled = this.curse === 'blind';
     this.darkK = 0;
     this.player.recompute();
-    this.floorDef.extras = def.noExtras ? [] : chooseExtras(this, n, def);
-    this.floor = new Floor(this.rng.fork('floor:' + n), this.floorDef, this.variant);
+    this.floorDef.lost = this.curse === 'lost';
+    // which special rooms: rolled from how you're doing as you arrive (a continued run reuses
+    // the saved list so the floor comes out the same)
+    const restoring = this.restoreFloor;
+    this.restoreFloor = null;
+    if (!this.rearranging) this.rearrangeCount = restoring?.rearranged || 0;
+    this.floorDef.specials = restoring?.specials || chooseSpecials(this, n, def, { labyrinth: this.curse === 'labyrinth' });
+    // (the die's five rebuilds the floor with new rooms: a fresh layout each time)
+    this.floor = new Floor(this.rng.fork('floor:' + n + (this.rearrangeCount ? ':' + this.rearrangeCount : '')), this.floorDef, this.variant);
     // one rock on some floors hides a ladder down into a crawlspace
     this.crawl = this.pickCrawlspace(n);
     // maybe a beggar or a machine waits in one plain room (src/data/machines.js)
@@ -446,6 +464,10 @@ export class Game {
 
     if (this.pause.visible) {
       this.pause.update(dt, input);
+      return;
+    }
+    if (this.debugFloorMap) {
+      if (input.consume('back') || input.consume('pause') || input.consume('confirm')) this.toggleDebugFloorMap(false);
       return;
     }
     if (this.debugMenu) {
@@ -631,14 +653,16 @@ export class Game {
     if (!p.dead) this.checkExit();
   }
 
-  // The camera follows the player through big rooms (one-screen rooms never scroll).
+  // The camera follows the player through big rooms (one-screen rooms never scroll). A room smaller
+  // than the screen is centered in it.
   updateCamera(dt, snap = false) {
-    const p = this.player, room = this.room;
-    const tx = Math.max(0, Math.min(room.worldW - VIEW_W, p.x - VIEW_W / 2));
-    const ty = Math.max(0, Math.min(room.worldH - VIEW_H, p.y - 12 - VIEW_H / 2));
+    const p = this.player, room = this.room, C = TUNING.camera;
+    const fit = (size, view, want) => (size <= view ? (size - view) / 2 : Math.max(0, Math.min(size - view, want)));
+    const tx = fit(room.worldW, VIEW_W, p.x - VIEW_W / 2);
+    const ty = fit(room.worldH, VIEW_H, p.y - C.lookAhead - VIEW_H / 2);
     this.cam ??= { x: 0, y: 0 };
     if (snap) { this.cam.x = tx; this.cam.y = ty; return; }
-    const k = Math.min(1, dt * 9);
+    const k = Math.min(1, dt * C.follow);
     this.cam.x += (tx - this.cam.x) * k;
     this.cam.y += (ty - this.cam.y) * k;
   }
@@ -670,9 +694,24 @@ export class Game {
     this.particles.burst(boss.x, boss.y - 8, 50, { colors: ['#9a9aa4', '#6a6a74', '#2a2a30', '#f08a24', '#ffd25a'], speed: 150, z: 14, vz: 120, sizeVar: 3, life: 1.1 });
     room.paintDecal((g) => splat(g, boss.x, boss.y + 6, 22, ['#0e0a08', '#1a1210', '#3a2416']));
     const cx = room.centerX, cy = room.centerY;
+    if (this.cell.firstBoss) {
+      // the first of two boss rooms: an item, and the way on to the second
+      this.floorLoot.boss2 ??= this.itemPools.draw('boss');
+      const at = room.findFreeSpot(cx, cy - 22);
+      room.pedestals.push(new Pedestal(at.x, at.y, this.floorLoot.boss2));
+      this.stats.bosses++;
+      progress.event('bossKilled', { id: boss.id });
+      this.spawnPickup('heart', boss.x, boss.y);
+      this.banner = { text: `${boss.name} IS DOWN`, sub: 'SOMETHING WORSE WAITS BEYOND...', t: 0, dur: 3 };
+      this.updateMusic();
+      sfx('explosion', { big: true });
+      return;
+    }
     // On the final floor the light beam takes the middle, so the item sits to the side.
-    room.pedestals.push(this.floorDef.final ? new Pedestal(cx - 70, cy, this.floorLoot.boss) : new Pedestal(cx, cy - 22, this.floorLoot.boss));
-    room.trapdoor = new Trapdoor(cx, cy + 36, this.floorDef.final ? 'light' : 'hatch');
+    const ped = room.findFreeSpot(this.floorDef.final ? cx - 70 : cx, this.floorDef.final ? cy : cy - 22);
+    room.pedestals.push(new Pedestal(ped.x, ped.y, this.floorLoot.boss));
+    const hatchAt = room.findFreeSpot(cx, cy + 36);
+    room.trapdoor = new Trapdoor(hatchAt.x, hatchAt.y, this.floorDef.final ? 'light' : 'hatch');
     this.stats.bosses++;
     progress.event('bossKilled', { id: boss.id });
     this.spawnPickup('heart', boss.x, boss.y);
@@ -696,6 +735,7 @@ export class Game {
   // The die's five: the same floor, rebuilt with new rooms (you keep everything you carry).
   rearrangeFloor() {
     this.rearranging = true;
+    this.rearrangeCount = (this.rearrangeCount || 0) + 1;
     this.forcedVariants[this.floorNum] = this.variant.id;
     this.startFloor(this.floorNum);
     this.rearranging = false;
@@ -711,7 +751,9 @@ export class Game {
     const cells = r.shuffle([...this.floor.cells.values()].filter((c) => c.type === 'normal' && c.shape === '1x1'));
     for (const c of cells) {
       const rocks = [];
-      c.template.layout.forEach((row, ri) => [...row].forEach((ch, ci) => { if (ch === '#') rocks.push([ci, ri]); }));
+      // (not a rock in a doorway: those are cleared away)
+      const doorway = new Set(shapeSlots('1x1').flatMap((sl) => doorwayTiles(sl, '1x1')).map(([ci, ri]) => `${ci},${ri}`));
+      c.template.layout.forEach((row, ri) => [...row].forEach((ch, ci) => { if (ch === '#' && !doorway.has(`${ci},${ri}`)) rocks.push([ci, ri]); }));
       if (rocks.length) { const [ci, ri] = r.pick(rocks); return { key: c.key, c: ci, r: ri, item: null, market: r.chance(0.25), taken: false }; }
     }
     return null;
@@ -889,7 +931,9 @@ export class Game {
     }
   }
 
+  // opts.safe: put it on a safe spot near (x, y) (enemies made by cards, items, machines)
   spawnEnemy(type, x, y, opts) {
+    if (opts?.safe) ({ x, y } = this.room.findFreeSpot(x, y, { share: true }));
     const e = new Enemy(type, x, y, { hpMul: this.floorDef?.enemyHp ?? 1, ...opts });
     this.room.enemies.push(e);
     return e;
@@ -967,7 +1011,7 @@ export class Game {
     for (const door of Object.values(this.cell.doors)) door.closed = false;
     if (this.cell.type === 'boss') return; // the boss leaves its own rewards
     if (this.room.restless) { this.room.restless = false; return; }   // the Restless give nothing back
-    if (this.room.lairReward) { this.room.lairReward = false; addProp(this.room, new Chest(this.room.centerX, this.room.centerY, { locked: false, open: false })); }
+    if (this.room.lairReward) { this.room.lairReward = false; const s = this.room.findFreeSpot(this.room.centerX, this.room.centerY); addProp(this.room, new Chest(s.x, s.y, { locked: false, open: false })); }
     const spot = this.room.findFreeSpot(this.room.centerX, this.room.centerY);
     this.rollDrops('roomClear', spot.x, spot.y);
   }
@@ -991,11 +1035,14 @@ export class Game {
         room.keeper = new Shopkeeper(s.x, s.y);
       } else if (s.ch === 'B') {
         // one boss, or a pair ("a+b") side by side at reduced health; sometimes a champion
-        const ids = this.bossFor(this.floorNum).split('+');
+        // (a Sprawl floor's first boss room holds the floor's own boss, at its own strength)
+        const own = !!cell.firstBoss;
+        const ids = this.bossFor(this.floorNum, own).split('+');
         const pair = ids.length > 1;
-        const champion = this.bossChampion(this.floorNum);
+        const champion = own ? null : this.bossChampion(this.floorNum);
+        const hp = own ? this.floorDef.ownBossHp : this.floorDef.bossHp, tier = own ? this.floorDef.ownBossTier : this.floorDef.bossTier;
         const list = ids.map((id, i) => createBoss(id, s.x + (pair ? (i ? 60 : -60) : 0), s.y, {
-          hpMul: this.floorDef.bossHp * (pair ? 0.65 : 1), tier: this.floorDef.bossTier, champion: i === 0 ? champion : null,
+          hpMul: hp * (pair ? 0.65 : 1), tier, champion: i === 0 ? champion : null,
         }));
         room.boss = list[0];
         if (pair) room.extraBosses = list.slice(1);
@@ -1008,7 +1055,7 @@ export class Game {
     if (cell.type === 'shop') {
       stockShop(this, room);
       // sometimes a restock box in the corner
-      if (this.rng.fork('restock:' + cell.key).chance(0.3)) addProp(room, new Machine(room.R - 28, room.y0 + 34, { type: 'restock' }));
+      if (this.rng.fork('restock:' + cell.key).chance(0.3)) { const s = room.findFreeSpot(room.R - 28, room.y0 + 34); addProp(room, new Machine(s.x, s.y, { type: 'restock' })); }
     }
     // a beggar or a machine wandered into one plain room of the floor
     if (cell.key === this.wanderCell && cell.type === 'normal') {
@@ -1221,6 +1268,8 @@ export class Game {
   // ---------------------------------------------------------------------------
   // Pickups and loot
   spawnPickup(type, x, y, pop = true) {
+    // never in a doorway, a wall or a rock (pickups may pile up on one spot)
+    ({ x, y } = this.room.findFreeSpot(x, y, { share: true }));
     const a = Math.random() * Math.PI * 2;
     const sp = pop ? 25 + Math.random() * 35 : 0;
     const p = new Pickup(type, x, y, { vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: pop ? 90 : 0, z: pop ? 1 : 0 });
@@ -1434,7 +1483,8 @@ export class Game {
 
   // Taps/clicks while a menu is showing (view coordinates).
   onTap(vx, vy) {
-    if (this.debugMenu) this.debugMenu.tap(vx, vy);
+    if (this.debugFloorMap) this.toggleDebugFloorMap(false);
+    else if (this.debugMenu) this.debugMenu.tap(vx, vy);
     else if (this.pause.visible) this.pause.tap(vx, vy);
     else if (this.state === 'gameover' && this.stateT >= 0.8) this.newRun();
     else if (this.state === 'victory' && this.stateT >= 1.2) this.victoryMenu.tap(vx, vy);
@@ -1573,11 +1623,17 @@ export class Game {
     if (c) for (const d of Object.values(c.doors)) { d.locked = false; d.hidden = false; }
   }
 
+  // Debug: the whole floor plan with hidden rooms, dead ends and distances (src/ui/debugmap.js).
+  toggleDebugFloorMap(on = !this.debugFloorMap) {
+    this.debugFloorMap = on;
+    this.touch.setMenuMode(on || this.pause.visible);
+  }
+
   renderDebugMenu(ctx) {
     const m = this.debugMenu;
     if (m.custom) { m.render(ctx); return; }   // the item picker draws itself
     const rowH = m.rowH || 11, h = m.items.length * rowH + 22;
-    const x = 72, y = Math.round((VIEW_H - h) / 2), w = 240;
+    const w = 240, x = (VIEW_W - w) / 2, y = Math.round((VIEW_H - h) / 2);
     drawWaxPanel(ctx, x, y, w, h, 1, 17);
     drawText(ctx, m.title || 'DEBUG: JUMP TO A FLOOR', x + w / 2, y + 5, { align: 'center', color: INK.title, shadow: false });
     m.t = this.time;
@@ -1586,7 +1642,7 @@ export class Game {
   }
 
   revealMap() {
-    this.floor.revealAll();
+    this.floor.revealAll(true);
   }
 
   // Debug helper until bombs exist: open every secret door next to this room.
@@ -1668,6 +1724,7 @@ export class Game {
     if (this.floorCard) this.renderFloorCard(ctx);
     this.pause.render(ctx);
     if (this.debugMenu) this.renderDebugMenu(ctx);
+    if (this.debugFloorMap) drawDebugFloorMap(ctx, this);
     if (this.state === 'gameover') this.renderGameOver(ctx);
     if (this.state === 'victory') this.renderVictory(ctx);
   }
@@ -1690,6 +1747,16 @@ export class Game {
       ctx.drawImage(g, Math.round(l.x - l.r + ox), Math.round(l.y - l.r + oy));
     }
     ctx.globalAlpha = 1;
+    // light spilling in through every open door from the room beyond
+    const L = TUNING.lighting, spill = getLightGlow(L.doorLightReach, 'rgba(255,214,150,1)');
+    for (const s of this.room.doorSlots) {
+      const d = s.door;
+      if (!d || d.hidden || d.anim <= 0) continue;
+      const [dx, dy] = DIRS[s.dir];
+      ctx.globalAlpha = L.doorLight * d.anim * (0.92 + Math.sin(this.time * 3 + s.x) * 0.08);
+      ctx.drawImage(spill, Math.round(s.x + dx * 6 - L.doorLightReach + ox), Math.round(s.y + dy * 6 - L.doorLightReach + oy));
+    }
+    ctx.globalAlpha = 1;
     if (!this.player.dead) this.player.renderLight(ctx, ox, oy);
     ctx.globalCompositeOperation = 'source-over';
   }
@@ -1702,7 +1769,7 @@ export class Game {
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
     const k = Math.min(1, fc.t / 0.5) * a;
     ctx.globalAlpha = Math.max(0, k);
-    const y = 76 + Math.round((1 - Math.min(1, fc.t / 0.5)) * 6);
+    const y = 76 + UI_Y + Math.round((1 - Math.min(1, fc.t / 0.5)) * 6);
     drawText(ctx, fc.sub, VIEW_W / 2, y - 18, { align: 'center', color: '#8a7a62' });
     drawText(ctx, fc.title, VIEW_W / 2, y, { align: 'center', scale: 3, color: '#e8d9b0', shadow: '#2a0e04' });
     ctx.fillStyle = '#5a2410';
@@ -1719,13 +1786,13 @@ export class Game {
     const slide = (1 - inK) * VIEW_W + outK * -VIEW_W;
     ctx.fillStyle = `rgba(0,0,0,${0.55 * inK * (1 - outK)})`;
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
-    const bandY = 58, bandH = 100;
+    const bandY = 58 + UI_Y, bandH = 100;
     ctx.fillStyle = '#120a08';
     ctx.fillRect(Math.round(slide), bandY, VIEW_W, bandH);
     ctx.fillStyle = '#6a1010';
     ctx.fillRect(Math.round(slide), bandY, VIEW_W, 2);
     ctx.fillRect(Math.round(slide), bandY + bandH - 2, VIEW_W, 2);
-    const x0 = Math.round(slide);
+    const x0 = Math.round(slide) + UI_X;
     // Wick on the left
     this.player.renderCopy(ctx, x0 + 70, bandY + 70, 0, 0, 1);
     drawText(ctx, this.player.charName, x0 + 70, bandY + 78, { align: 'center', color: '#e8d9b0' });
@@ -1746,7 +1813,7 @@ export class Game {
     ctx.fillStyle = '#060404';
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
     const k = Math.min(1, this.stateT / 1.2);
-    const P = { x: 62, y: 10, w: 260, h: 192 };
+    const P = { x: 62 + UI_X, y: 10 + UI_Y, w: 260, h: 192 };
     drawWaxPanel(ctx, P.x, P.y, P.w, P.h, k, 21);
     const a = inkAlpha(k);
     if (a <= 0) return;
@@ -1796,11 +1863,12 @@ export class Game {
     this.darkMasks ||= {};
     const wide = !!this.darkWide;
     if (!this.darkMasks[wide]) {
+      const r = wide ? TUNING.lighting.darknessWideRadius : TUNING.lighting.darknessRadius;
       const [c, mctx] = makeCanvas(VIEW_W * 2, VIEW_H * 2);
       mctx.fillStyle = 'rgba(2,1,4,0.88)';
       mctx.fillRect(0, 0, c.width, c.height);
       mctx.globalCompositeOperation = 'destination-out';
-      const g = mctx.createRadialGradient(VIEW_W, VIEW_H, wide ? 24 : 18, VIEW_W, VIEW_H, wide ? 96 : 78);
+      const g = mctx.createRadialGradient(VIEW_W, VIEW_H, r / 4, VIEW_W, VIEW_H, r);
       g.addColorStop(0, 'rgba(0,0,0,1)');
       g.addColorStop(1, 'rgba(0,0,0,0)');
       mctx.fillStyle = g;
@@ -1882,9 +1950,9 @@ export class Game {
     ctx.globalAlpha = k;
     const s = this.summary;
     const mid = VIEW_W / 2;
-    drawText(ctx, 'YOUR FLAME WENT OUT', mid, 40, { align: 'center', scale: 2, color: PAL.textWarn });
-    drawText(ctx, 'SNUFFED OUT BY', mid, 70, { align: 'center', color: PAL.textDim });
-    drawText(ctx, s.killedBy, mid, 82, { align: 'center', color: PAL.textBad, scale: 2 });
+    drawText(ctx, 'YOUR FLAME WENT OUT', mid, 40 + UI_Y, { align: 'center', scale: 2, color: PAL.textWarn });
+    drawText(ctx, 'SNUFFED OUT BY', mid, 70 + UI_Y, { align: 'center', color: PAL.textDim });
+    drawText(ctx, s.killedBy, mid, 82 + UI_Y, { align: 'center', color: PAL.textBad, scale: 2 });
 
     const mm = Math.floor(s.time / 60), ss = Math.floor(s.time % 60);
     const rows = [
@@ -1897,14 +1965,14 @@ export class Game {
       ['SEED', this.seed],
     ];
     rows.forEach(([label, value], i) => {
-      const y = 100 + i * 11;
+      const y = 100 + UI_Y + i * 11;
       drawText(ctx, label, mid - 90, y, { color: PAL.textDim });
       drawText(ctx, value, mid + 90, y, { align: 'right' });
     });
 
     if (this.stateT >= 0.8 && Math.floor(this.stateT * 2) % 2 === 0) {
       const msg = this.touch.enabled ? 'TAP TO TRY AGAIN' : 'ENTER: NEW RUN   R: SAME SEED   ESC: MENU';
-      drawText(ctx, msg, mid, 186, { align: 'center', color: PAL.text });
+      drawText(ctx, msg, mid, 186 + UI_Y, { align: 'center', color: PAL.text });
     }
     ctx.globalAlpha = 1;
   }

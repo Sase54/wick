@@ -7,13 +7,15 @@
 // copies on the minimap), and rooms you've been to show what's still lying in them.
 //
 // Map items (field `map` in src/data/items.js): 'rooms' shows every room's shape, 'icons' shows
-// every special room's icon, 'secrets' reveals the secret rooms. The Torn Map curse hides it all.
+// every special room's icon, 'secrets' reveals the secret rooms. The Torn Map curse hides every
+// room but the one you're in (and the big map altogether).
 import { buildSprite } from '../engine/sprites.js';
 import { VIEW_W, VIEW_H } from '../engine/canvas.js';
 import { packSprite } from '../engine/packart.js';
 import { heldSources } from '../game/items.js';
 import { HEART_KINDS, PICKUPS } from '../data/pickups.js';
 import { drawText } from './text.js';
+import { START } from '../game/floorgen.js';
 
 const OUT = '#0a0606';
 
@@ -78,11 +80,13 @@ function smallIcon(name, set = SMALL) {
 function knowledge(game) {
   const k = { rooms: false, icons: false, secrets: false };
   for (const { d } of heldSources(game.player)) if (d.map) k[d.map] = true;   // items and trinkets
+  if (game.curse === 'lost') { k.lost = true; k.current = game.cell; k.rooms = k.icons = k.secrets = false; }
   return k;
 }
 const SECRET_TYPES = new Set(['secret', 'supersecret', 'ultrasecret', 'red']);
 function shown(c, k) {
   if (c.offGrid) return false;
+  if (k.lost) return c === k.current;   // the Torn Map curse: only the room you're in
   if (c.seen) return true;
   if (k.secrets && (c.type === 'secret' || c.type === 'supersecret')) return true;
   return k.rooms && !SECRET_TYPES.has(c.type);
@@ -209,8 +213,8 @@ export function drawMinimap(ctx, game, right = VIEW_W - 3, top = 3) {
   const room = game.room, p = game.player, current = game.cell;
   const ux = Math.max(0, Math.min(Math.floor(room.cols / 13) - 1, Math.floor((p.x - room.x0) / (13 * 24))));
   const uy = Math.max(0, Math.min(Math.floor(room.rows / 7) - 1, Math.floor((p.y - room.y0) / (7 * 24))));
-  const x0 = (current.offGrid ? 7 : current.x + ux) - (MINI.cols >> 1);
-  const y0 = (current.offGrid ? 5 : current.y + uy) - (MINI.rows >> 1);
+  const x0 = (current.offGrid ? START[0] : current.x + ux) - (MINI.cols >> 1);
+  const y0 = (current.offGrid ? START[1] : current.y + uy) - (MINI.rows >> 1);
   ctx.save();
   ctx.beginPath(); ctx.rect(r.x + 1, r.y + 1, r.w - 2, r.h - 2); ctx.clip();
   drawRooms(ctx, game, { left: r.x + 2, top: r.y + 2, ...MINI, x0, y0, big: false }, game.time);

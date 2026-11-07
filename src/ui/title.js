@@ -1,5 +1,5 @@
 // Title screen: a dark cellar, a big flickering Wick, and a wax slab with the menu.
-import { VIEW_W, VIEW_H } from '../engine/canvas.js';
+import { VIEW_W, VIEW_H, UI_X, UI_Y } from '../engine/canvas.js';
 import { RNG, normalizeSeed } from '../engine/rng.js';
 import { makeCanvas, makeGlow } from '../engine/sprites.js';
 import { hasStore, clearStore, loadStore } from '../engine/storage.js';
@@ -7,7 +7,6 @@ import { Room } from '../game/room.js';
 import { Player } from '../game/player.js';
 import { progress } from '../game/progress.js';
 import { SPECIAL_ROOMS } from '../data/rooms.js';
-import { FLOORS } from '../data/floors.js';
 import { drawText } from './text.js';
 import { Menu } from './menu.js';
 import { drawWaxPanel, inkAlpha } from './wax.js';
@@ -15,7 +14,7 @@ import { SettingsPanel } from './settingsPanel.js';
 import { popups } from './unlockPopup.js';
 import { CharSelect } from './charSelect.js';
 
-const PANEL = { x: 214, y: 80, w: 140, h: 76 };
+const PANEL = { x: 214 + UI_X, y: 80 + UI_Y, w: 140, h: 76 };
 const GLOW = makeGlow(70, 'rgba(255,150,60,0.5)');
 
 export class TitleScreen {
@@ -144,17 +143,17 @@ export class TitleScreen {
     const flick = 0.8 + Math.sin(this.t * 11) * 0.06 + Math.sin(this.t * 27) * 0.05;
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha = 0.45 * flick;
-    ctx.drawImage(GLOW, 100 - 70, 104 - 70);
+    ctx.drawImage(GLOW, 100 - 70 + UI_X, 104 - 70 + UI_Y);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
     this.wctx.clearRect(0, 0, 40, 48);
     this.wick.render(this.wctx, 0, 0);
-    ctx.drawImage(this.wc, 100 - 40, 70, 80, 96);
+    ctx.drawImage(this.wc, 100 - 40 + UI_X, 70 + UI_Y, 80, 96);
 
     // Title
     const bob = Math.round(Math.sin(this.t * 1.5) * 1.5);
-    drawText(ctx, 'WICK', VIEW_W / 2, 12 + bob, { align: 'center', scale: 5, color: '#f08a24', shadow: '#2a0e04' });
-    drawText(ctx, 'DOWN THE CELLAR', VIEW_W / 2, 52, { align: 'center', scale: 2, color: '#e8d9b0', shadow: '#0b0807' });
+    drawText(ctx, 'WICK', VIEW_W / 2, 12 + UI_Y + bob, { align: 'center', scale: 5, color: '#f08a24', shadow: '#2a0e04' });
+    drawText(ctx, 'DOWN THE CELLAR', VIEW_W / 2, 52 + UI_Y, { align: 'center', scale: 2, color: '#e8d9b0', shadow: '#0b0807' });
 
     if (this.page === 'main') {
       const k = this.k * this.pageK;
@@ -165,8 +164,8 @@ export class TitleScreen {
       this.menu.layout(PANEL.x + 14, PANEL.y + 10, PANEL.w - 24);
       this.menu.render(ctx, a);
       if (this.saved && a > 0) {
-        const fl = FLOORS[(this.saved.floorNum || 1) - 1];
-        drawText(ctx, fl ? fl.name : '', PANEL.x + PANEL.w / 2, PANEL.y + h + 4, { align: 'center', color: '#8a7a62' });
+        const name = this.saved.floorName || `FLOOR ${this.saved.floorNum || 1}`;
+        drawText(ctx, name, PANEL.x + PANEL.w / 2, PANEL.y + h + 4, { align: 'center', color: '#8a7a62' });
       }
       const hint = this.touch.enabled ? 'TAP TO CHOOSE' : 'ARROWS + ENTER';
       drawText(ctx, hint, PANEL.x + PANEL.w / 2, PANEL.y + PANEL.h + 12, { align: 'center', color: '#8a7a62' });

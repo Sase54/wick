@@ -271,7 +271,7 @@ export const CONSUMABLE_FX = {
       if (c.type === 'secret' || c.type === 'supersecret') c.seen = true;
       for (const door of Object.values(c.doors)) door.hidden = false;
     }
-    g.floor.revealAll();
+    g.floor.revealAll(true);
     sfx('secret');
   },
   roomBuff(g, d) { g.player.roomDamage = (g.player.roomDamage || 0) + d.amount; },

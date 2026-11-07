@@ -5,9 +5,10 @@ import { Menu } from './menu.js';
 import { drawWaxPanel, inkAlpha, INK } from './wax.js';
 import { createSettingsMenu, SETTING_HINTS } from './settingsMenu.js';
 import { sfx } from '../engine/audio.js';
+import { VIEW_W, VIEW_H, UI_X, UI_Y } from '../engine/canvas.js';
 
-const LIST = { x: 42, y: 6, w: 300, h: 202 };
-const CONFIRM = { x: 82, y: 56, w: 220, h: 100 };
+const LIST = { x: 42 + UI_X, y: 6 + UI_Y, w: 300, h: 202 };
+const CONFIRM = { x: 82 + UI_X, y: 56 + UI_Y, w: 220, h: 100 };
 
 export class SettingsPanel {
   // onBack: leave settings. onReset: erase progress (after the player confirms).
@@ -82,7 +83,7 @@ export class SettingsPanel {
   renderConfirm(ctx, k) {
     const C = CONFIRM;
     ctx.fillStyle = 'rgba(6,4,4,0.5)';
-    ctx.fillRect(0, 0, 384, 216);
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
     drawWaxPanel(ctx, C.x, C.y, C.w, C.h, k, 17);
     const a = inkAlpha(k);
     if (a <= 0) return;

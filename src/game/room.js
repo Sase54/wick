@@ -6,8 +6,8 @@
 // game's camera scrolls to follow the player.
 import { makeCanvas } from '../engine/sprites.js';
 import { PAL } from '../data/palette.js';
-import { TILE, COLS, ROWS, ROOM_X, ROOM_Y, T, TILE_CHARS, DOOR_GAP } from './constants.js';
-import { shapeOf, shapeSlots, shapeWall, slotCell } from './shapes.js';
+import { TILE, COLS, ROWS, ROOM_X, ROOM_Y, ROOM_YB, T, TILE_CHARS, DOOR_GAP } from './constants.js';
+import { shapeOf, shapeSlots, shapeWall, slotCell, doorwayTiles } from './shapes.js';
 import { generateRoomBase, composeRoom, potDebris } from './roomart.js';
 import { decorateRoom } from './roomdecor.js';
 import { sfx } from '../engine/audio.js';
@@ -32,7 +32,7 @@ export class Room {
     this.R = this.x0 + this.W;
     this.B = this.y0 + this.H;
     this.worldW = this.W + ROOM_X * 2;
-    this.worldH = this.H + ROOM_Y * 2;
+    this.worldH = this.H + ROOM_Y + ROOM_YB;
 
     const n = this.cols * this.rows;
     this.grid = new Uint8Array(n);
@@ -62,6 +62,13 @@ export class Room {
       }[sl.dir];
       return { ...sl, x: pos[0], y: pos[1], cell: slotCell(sl, this.shape), door: null };
     });
+    // every doorway stays clear (a door or a bombable wall can be on any slot), whatever the layout
+    for (const sl of this.slots) {
+      for (const [c, r] of doorwayTiles(sl, this.shape)) {
+        const i = r * this.cols + c;
+        if (this.inBounds(c, r) && this.grid[i] !== T.WALL) this.grid[i] = T.FLOOR;
+      }
+    }
     this.doors = {};          // slot key -> Door, filled in by the floor
     this.cleared = true;      // set to false when enemies are placed
     this.enemies = [];
@@ -123,28 +130,120 @@ export class Room {
     return true;
   }
 
-  // Nearest walkable tile center to (x, y), searching outward tile by tile.
-  findFreeSpot(x, y) {
+  // ---- safe spawn spots: the one place everything that appears at runtime gets its spot
+  // (beggars, machines, chests, pickups, item pedestals, trapdoors, enemies from cards/items).
+  //
+  // A tile is safe when it is floor (no wall, rock, pit, spikes, fire or other hazard), at least
+  // 3 tiles from every door (or bombable wall), not under something already there (a pedestal,
+  // machine, chest, trapdoor, pickup, enemy, the shopkeeper), and putting something solid on it
+  // still leaves a way between all the doors.
+  doorTiles(all = false) {
+    // boss rooms count every wall middle: a deal door may open there later
+    return this.slots.filter((s) => all || this.type === 'boss' || s.door).map((s) => s.cell);
+  }
+
+  occupiedTiles() {
+    const out = new Set();
+    const mark = (e) => { if (e && Number.isFinite(e.x)) out.add(this.rowAt(e.y) * this.cols + this.colAt(e.x)); };
+    for (const p of this.pedestals) mark(p);
+    for (const p of this.props || []) mark(p);
+    for (const p of this.pickups) if (!p.collected) mark(p);
+    for (const e of this.enemies) if (!e.dead) mark(e);
+    mark(this.trapdoor);
+    mark(this.keeper);
+    return out;
+  }
+
+  // Tiles under a hazard (fires, webs, traps...): never a spawn spot.
+  hazardTiles() {
+    const out = new Set();
+    for (const h of this.hazards) if (Number.isFinite(h.x) && Number.isFinite(h.y)) out.add(this.rowAt(h.y) * this.cols + this.colAt(h.x));
+    return out;
+  }
+
+  // Tiles that stand in the way of walking (rocks and pits, plus pedestals, machines and chests).
+  blockedTiles() {
+    const out = new Set();
+    for (let i = 0; i < this.grid.length; i++) if (WALK_SOLID.has(this.grid[i])) out.add(i);
+    const mark = (e) => { if (e && Number.isFinite(e.x)) out.add(this.rowAt(e.y) * this.cols + this.colAt(e.x)); };
+    for (const p of this.pedestals) mark(p);
+    for (const p of this.props || []) mark(p);
+    mark(this.keeper);
+    return out;
+  }
+
+  // Can every door still reach every other one with `extra` (a tile index) blocked too?
+  doorsConnected(blocked, extra, doors) {
+    if (doors.length < 2) return true;
+    const ok = (i) => i !== extra && !blocked.has(i);
+    const [c0, r0] = doors[0];
+    const seen = new Set([r0 * this.cols + c0]);
+    const stack = [[c0, r0]];
+    while (stack.length) {
+      const [c, r] = stack.pop();
+      for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nc = c + dc, nr = r + dr, k = nr * this.cols + nc;
+        if (!this.inBounds(nc, nr) || seen.has(k) || !ok(k)) continue;
+        seen.add(k);
+        stack.push([nc, nr]);
+      }
+    }
+    return doors.every(([c, r]) => seen.has(r * this.cols + c));
+  }
+
+  // The safe spot nearest to (x, y): the wanted spot itself if it's safe, else spiralling out
+  // ring by ring (nearest first in each ring). If nothing in the room is fully safe the rules
+  // relax step by step (things may share a tile, then doors only keep 1 tile clear, then any floor).
+  // share: things that may pile up (pickups, enemies) can share a tile.
+  findFreeSpot(x, y, { doorGap = 2, share = false } = {}) {
     const c0 = Math.max(0, Math.min(this.cols - 1, this.colAt(x)));
     const r0 = Math.max(0, Math.min(this.rows - 1, this.rowAt(y)));
-    if (!this.isWalkSolid(c0, r0)) return { x, y };
-    for (let d = 1; d < Math.max(this.cols, this.rows); d++) {
-      for (let dr = -d; dr <= d; dr++) {
-        for (let dc = -d; dc <= d; dc++) {
-          if (Math.max(Math.abs(dc), Math.abs(dr)) !== d) continue;
-          const c = c0 + dc, r = r0 + dr;
-          if (this.inBounds(c, r) && !this.isWalkSolid(c, r)) return this.tileCenter(c, r);
+    const doors = this.doorTiles();
+    const walkDoors = this.slots.filter((s) => s.door).map((s) => s.cell);
+    const blocked = this.blockedTiles(), haz = this.hazardTiles();
+    const levels = [
+      { gap: doorGap, taken: this.occupiedTiles(), path: true },
+      { gap: doorGap, taken: null, path: true },
+      { gap: 1, taken: null, path: true },
+      { gap: -1, taken: null, path: false },
+    ];
+    for (const L of share ? levels.slice(1) : levels) {
+      const safe = (c, r) => {
+        if (!this.inBounds(c, r)) return false;
+        const i = r * this.cols + c;
+        if (this.grid[i] !== T.FLOOR) return false;
+        if (doors.some(([dc, dr]) => Math.max(Math.abs(dc - c), Math.abs(dr - r)) <= L.gap)) return false;
+        if (L.gap >= 0 && haz.has(i)) return false;
+        if (L.taken?.has(i)) return false;
+        return !L.path || this.doorsConnected(blocked, i, walkDoors);
+      };
+      if (safe(c0, r0)) return { x, y };
+      const fx = (x - this.x0) / TILE - 0.5, fy = (y - this.y0) / TILE - 0.5;
+      for (let d = 1; d < Math.max(this.cols, this.rows); d++) {
+        const ring = [];
+        for (let dr = -d; dr <= d; dr++) {
+          for (let dc = -d; dc <= d; dc++) {
+            if (Math.max(Math.abs(dc), Math.abs(dr)) === d) ring.push([c0 + dc, r0 + dr]);
+          }
         }
+        ring.sort((a, b) => Math.hypot(a[0] - fx, a[1] - fy) - Math.hypot(b[0] - fx, b[1] - fy));
+        for (const [c, r] of ring) if (safe(c, r)) return this.tileCenter(c, r);
       }
     }
     return { x, y };
   }
 
-  // A random walkable spot (spawning things in big rooms).
+  // A random safe spot (spawning things in big rooms, placing hazards).
   randomFreeSpot(rng, margin = 1) {
+    const taken = this.occupiedTiles(), haz = this.hazardTiles(), doors = this.doorTiles();
+    const blocked = this.blockedTiles(), walkDoors = this.slots.filter((s) => s.door).map((s) => s.cell);
     for (let i = 0; i < 60; i++) {
       const c = rng.int(margin, this.cols - 1 - margin), r = rng.int(margin, this.rows - 1 - margin);
-      if (!this.isWalkSolid(c, r)) return this.tileCenter(c, r);
+      const k = r * this.cols + c;
+      if (this.grid[k] !== T.FLOOR || taken.has(k) || haz.has(k)) continue;
+      if (doors.some(([dc, dr]) => Math.max(Math.abs(dc - c), Math.abs(dr - r)) <= 2)) continue;
+      if (!this.doorsConnected(blocked, k, walkDoors)) continue;
+      return this.tileCenter(c, r);
     }
     return this.findFreeSpot(this.centerX, this.centerY);
   }

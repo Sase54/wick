@@ -112,7 +112,9 @@ const STORES = {
     // v6 (part 6): familiars that grow keep their progress (helperXp) and transformations are
     // kept for good (transforms). An older run starts with none; a transformation its items
     // already earn is given quietly when it loads.
-    version: 6,
+    // v7: floors are laid out by a new generator, so the saved floor's map can't be rebuilt.
+    // Everything you carry is kept and you start the same floor again, on a fresh map.
+    version: 7,
     fresh: () => null,
     migrations: {
       // v1 -> v2: red/redMax/ash numbers became a full health object (src/game/health.js)
@@ -133,6 +135,13 @@ const STORES = {
       },
       5: (d) => {
         if (d?.player) { d.player.helperXp ??= {}; d.player.transforms ??= []; }
+        return d;
+      },
+      // v6 -> v7: forget the old floor's rooms (the floor is rebuilt from the start room)
+      6: (d) => {
+        if (!d) return d;
+        d.cells = []; d.added = []; d.crawl = null; d.cell = null;
+        if (d.player) { d.player.x = 240; d.player.y = 146; }   // the start room middle (480x270 layout)
         return d;
       },
     },

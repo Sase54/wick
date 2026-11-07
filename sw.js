@@ -2,7 +2,7 @@
 // Strategy: try the network first (so updates show up right away), fall back to the
 // cache when offline. Everything is also cached up front on install.
 // When you add a new file to the game, add it to ASSETS and bump VERSION.
-const VERSION = 'wick-v20';
+const VERSION = 'wick-v22';
 const ASSETS = [
   './',
   'index.html',
@@ -38,6 +38,7 @@ const ASSETS = [
   'src/data/enemies.js',
   'src/data/enemySprites.js',
   'src/data/floors.js',
+  'src/data/tuning.js',
   'src/data/items.js',
   'src/data/items/originals.js',
   'src/data/items/shots.js',
@@ -60,6 +61,7 @@ const ASSETS = [
   'src/game/effects.js',
   'src/game/enemies.js',
   'src/game/floor.js',
+  'src/game/floorgen.js',
   'src/game/followers.js',
   'src/game/familiars.js',
   'src/game/weapons.js',
@@ -207,6 +209,7 @@ const ASSETS = [
   'src/ui/hud.js',
   'src/ui/menu.js',
   'src/ui/minimap.js',
+  'src/ui/debugmap.js',
   'src/ui/itemPicker.js',
   'src/game/consumables.js',
   'src/game/trinketfx.js',

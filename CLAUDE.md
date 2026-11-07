@@ -25,7 +25,8 @@ The Binding of Isaac (Rebirth + Afterbirth+ + Repentance) with entirely original
 ## Project facts
 
 - Plain JavaScript ES modules + HTML5 Canvas, no build step, no dependencies.
-  Internal resolution 384x216, scaled with crisp pixels.
+  Internal resolution 480x270, scaled with crisp pixels. Feel numbers (screen, walls, camera,
+  light, and later movement, tears, damage...) live in `src/data/tuning.js`.
 - Run locally: `powershell -ExecutionPolicy Bypass -File serve.ps1`, then open
   `http://localhost:8080`. (No Python/Node on the dev machine.)
 - Debug: `?debug` (debug keys, FPS, room-layout validation), `&play` skips the title screen.

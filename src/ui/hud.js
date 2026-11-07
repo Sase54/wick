@@ -279,7 +279,7 @@ export function drawHud(ctx, game) {
   if (game.settings.itemInfo === 'detailed' && !game.transition) drawItemInfo(ctx, game);
   // the minimap (the Torn Map curse takes it away); held open (Tab), the big map over everything
   const bigMap = game.input?.map && !game.paused;
-  if (game.curse !== 'lost' && !bigMap) drawMinimap(ctx, game);
+  if (!bigMap) drawMinimap(ctx, game);   // (the Torn Map curse shows only the room you're in)
 
   const b = game.banner;
   if (b && (b.item || b.icon) && b.t < b.dur && !bigMap) drawItemStrip(ctx, b);

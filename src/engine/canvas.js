@@ -1,6 +1,11 @@
 // Fixed low-res canvas, scaled up with crisp pixels and letterboxed inside the safe area.
-export const VIEW_W = 384;
-export const VIEW_H = 216;
+import { TUNING } from '../data/tuning.js';
+export const VIEW_W = TUNING.screen.width;    // 480
+export const VIEW_H = TUNING.screen.height;   // 270
+// Menus still laid out for the old 384x216 screen sit centered in the bigger one (until the menu
+// pass redoes them): add these to their positions.
+export const UI_X = (VIEW_W - 384) / 2;      // 48
+export const UI_Y = (VIEW_H - 216) / 2;      // 27
 
 export function readSafeArea() {
   const probe = document.getElementById('safe-probe');
@@ -15,6 +20,8 @@ export function readSafeArea() {
 }
 
 export function createDisplay(canvas) {
+  canvas.width = VIEW_W;    // the page may still say the old size
+  canvas.height = VIEW_H;
   const ctx = canvas.getContext('2d', { alpha: false });
   const display = { canvas, ctx, scale: 1, left: 0, top: 0 };
 
@@ -28,7 +35,7 @@ export function createDisplay(canvas) {
     // so every game pixel is the same size.
     const dpr = window.devicePixelRatio || 1;
     const phys = scale * dpr;
-    if (phys >= 2 && Math.floor(phys) / phys > 0.88) scale = Math.floor(phys) / dpr;
+    if (phys >= 2 && Math.floor(phys) / phys > TUNING.screen.integerSnap) scale = Math.floor(phys) / dpr;
 
     const w = Math.round(VIEW_W * scale);
     const h = Math.round(VIEW_H * scale);

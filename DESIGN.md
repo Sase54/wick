@@ -10,6 +10,43 @@ rotting cellar.
 
 ---
 
+## FEEL AND TUNING
+
+Every number that decides how the game looks, moves, shoots and hits lives in one file,
+**`src/data/tuning.js`** (`TUNING`), grouped by the sections of the feel pass. Change a number
+there and the game follows; nothing else needs editing. Sections are added as the pass goes on.
+
+### 1. Screen, rooms and perspective (`TUNING.screen`, `.room`, `.camera`, `.lighting`)
+
+- **Screen**: the game draws at **480x270** game pixels (16:9) and is scaled up with crisp, square
+  pixels and black bars around it (inside the phone's safe area). When a whole-number scale costs
+  at most 12% of the screen it snaps to it, so every game pixel is the same size (a 1080p monitor
+  gets exactly 4x). A phone in landscape (like 844x390) can't fit 480x270 twice, so it uses the
+  largest crisp fit instead.
+- **Rooms**: a one-screen room is 13x7 floor tiles of 24 px (312x168) inside thick walls, and
+  together they fill the whole screen: side walls **84 px** (3.5 tiles), top wall **62 px**,
+  bottom wall **40 px**. Big rooms (2x1, 1x2, 2x2, L) are the same with more floor, and the
+  camera scrolls to follow you (catching up at speed 9, sitting 12 px above you so you see more
+  floor ahead); it stops at the room's edges.
+- **Fake 3/4 view**: the top wall is the tallest and shows a lit brick face **34 px** high, the
+  side walls show **18 px**, the bottom wall **9 px**; past each face there's a lighter lip and
+  then the dark top of the wall, fading toward the screen edge. The top wall's face is lit a bit
+  more, the bottom wall's less. The top wall casts a short shadow (8 px) on the floor below it,
+  and the floor darkens along every wall. Corner seams run from each screen corner to the floor's
+  corner. Everything in the room is drawn in order of its feet (lower on screen = in front).
+- **Doors** sit in the exact middle of each wall, in every state (open, shut during a fight,
+  locked, coin, bombable/hidden, boss, treasure, shop...; see THE MAP and Special rooms).
+  Walking through one slides the old room out and the new one in over **0.3 s**.
+- **Light**: a soft vignette darkens the corners (0.55); every open door spills a warm light
+  (0.16, reaching 70 px) into the room from the room beyond, fading in as the door opens; wall
+  candles and props glow; darkness (the final boss's last phase: 78 px light around Wick; the
+  Curse of the Guttered Flame and the dark pill: 96 px) hides everything else.
+- **Menus** are still laid out for the old 384x216 screen and sit centered in the new one, with
+  the corner buttons (character select BACK/TWISTED/START) in the real corners; the paper-look
+  menu pass redoes them.
+
+---
+
 ## HEARTS
 
 Health is counted in half hearts (`src/game/health.js`). At most **12 heart slots** in total.
@@ -107,18 +144,19 @@ it has one; it also builds the floor's rooms in the background).
 
 | # | Chapter | Rooms | Big-room chance | Enemy HP | Extra enemies | Champions | Boss pool (HP x) |
 |---|---|---|---|---|---|---|---|
-| 1 | 1 | 10–13 | 65% | x1.00 | 0% | 2% | early bosses (x1.00) |
-| 2 | 1 | 11–14 | 75% | x1.10 | 5% | 4% | early bosses (x1.15) |
-| 3 | 2 | 12–15 | 80% | x1.30 | 10% | 6% | chapter-2 bosses (x1.60, +1 shot tier) |
-| 4 | 2 | 13–16 | 85% | x1.45 | 15% | 8% | chapter-2 bosses (x1.85, +1 tier) |
-| 5 | 3 | 14–17 | 90% | x1.65 | 20% | 10% | chapter-3 bosses (x2.30, +1 tier) |
-| 6 | 3 | 15–18 | 95% | x1.80 | 25% | 12% | **The Chandler** (giant, always; x2.60) |
-| 7 | 4 | 16–19 | 100% | x2.00 | 30% | 14% | chapter-4 heavyweights (their own HP) |
-| 8 | 4 | 17–20 | 100% | x2.20 | 35% | 16% | **The Tallow Heart** (giant, always, only here) |
-| 9 | finale: THE WICK'S END | 6–8 | 60% | x2.30 | 35% | 18% | **The Snuffer** (final). Only a treasure room: no shop, no extra special rooms, no crawlspace |
+| 1 | 1 | 8–9 | 15% | x1.00 | 0% | 2% | early bosses (x1.00) |
+| 2 | 1 | 11–12 | 18% | x1.10 | 5% | 4% | early bosses (x1.15) |
+| 3 | 2 | 15–16 | 20% | x1.30 | 10% | 6% | chapter-2 bosses (x1.60, +1 shot tier) |
+| 4 | 2 | 18–19 | 22% | x1.45 | 15% | 8% | chapter-2 bosses (x1.85, +1 tier) |
+| 5 | 3 | 20 | 25% | x1.65 | 20% | 10% | chapter-3 bosses (x2.30, +1 tier) |
+| 6 | 3 | 20 | 25% | x1.80 | 25% | 12% | **The Chandler** (giant, always; x2.60) |
+| 7 | 4 | 20 | 30% | x2.00 | 30% | 14% | chapter-4 heavyweights (their own HP) |
+| 8 | 4 | 20 | 30% | x2.20 | 35% | 16% | **The Tallow Heart** (giant, always, only here) |
+| 9 | finale: THE WICK'S END | 6–8 | 15% | x2.30 | 35% | 18% | **The Snuffer** (final). Only a treasure room: no shop, no extra special rooms, no crawlspace |
 
-(Big-room chance is per normal room; how many actually grow depends on the space around them,
-about 2.5 big rooms on floor 1 up to ~8 on floor 8.) Bosses are drawn per floor from the chapter's
+(Rooms counts the start and special rooms, not the hidden ones; big-room chance is the chance a
+new room tries to be a big room, about 0.2 big rooms on floor 1 up to ~4 in chapter 4. See
+**Floor generation** under ROOM TYPES for every rule.) Bosses are drawn per floor from the chapter's
 pool and never repeat in a run while others remain. Beating a floor's boss opens a **trapdoor** to
 the next floor (on the final floor, a **beam of light** leads out = victory). Items, health, coins,
 bombs and keys carry over.
@@ -148,8 +186,8 @@ Data: `src/data/curses.js`; effects: look for `this.curse` in `src/game/game.js`
 | Curse | id | Effect |
 |---|---|---|
 | **CURSE OF THE GUTTERED FLAME** | `darkness` | the whole floor is dark except a small circle of light around Wick |
-| **CURSE OF THE TORN MAP** | `lost` | no minimap |
-| **CURSE OF THE SPRAWL** | `labyrinth` | (only on the first floor of a chapter) the floor swallows the next one: 1.5x the rooms, named "… XL", its boss is the next floor's (a giant included), and its trapdoor skips a floor |
+| **CURSE OF THE TORN MAP** | `lost` | the minimap shows only the room you're in, the big map is torn, and the floor has 4 more rooms |
+| **CURSE OF THE SPRAWL** | `labyrinth` | (only on the first floor of a chapter) the floor swallows the next one: 1.8x the rooms (max 45), named "… XL", two treasure rooms and **two boss rooms back to back**: the first holds the floor's own boss (an item when it falls, no trapdoor), the second the next floor's boss (a giant included) and the trapdoor, which skips a floor |
 | **CURSE OF THE BLANK HEART** | `unknown` | your health shows as "???" |
 | **CURSE OF THE WANDERING DOORS** | `maze` | going through a door between two plain rooms sometimes (15%) drops you in another visited plain room instead |
 | **CURSE OF THE VEILED ALTARS** | `blind` | every item on a pedestal (shops too) is a "?" until you pick it up, and item info is hidden |
@@ -187,7 +225,8 @@ Rooms are built from screen-sized **units** (13x7 tiles). Shapes (`src/game/shap
 **1x1**, big rooms **2x1**, **1x2**, **2x2** and **L-shapes** (2x2 with one corner missing; the
 camera scrolls to follow you), and narrow **halls** (only the middle 3 rows) and **shafts** (only
 the middle 5 columns). Doors sit in the middle of each outer edge of each unit (none facing an L's
-missing corner; halls only left/right, shafts only up/down). Each chapter has its own layouts
+missing corner; halls only left/right, shafts only up/down), and rooms only ever touch where both
+have a door spot, so every two rooms that touch share a door. Each chapter has its own layouts
 (`src/data/rooms/`), mirrored for variety: chapter 1 has **35** (22 one-screen, 2 halls, 2 shafts,
 3 2x1, 2 1x2, 2 2x2, 2 L); chapter 2 has **37**: 6 hand-made (a chasm with a bridge,
 stalagmites, a cave-in, a pool, a long chasm, a 2x2 cavern) plus 31 made by the **layout
@@ -205,37 +244,125 @@ door clear, and only keeps layouts where every door is reachable. Special rooms 
 | Normal | everywhere | a hand-made layout with rocks, pits, spikes, breakables, iron blocks, marked rocks and enemy spawns, filled from one of the variant's enemy groups (sometimes a miniboss instead). Doors lock until all enemies are dead; clearing it has a 45% (+4%/luck) chance to drop a pickup |
 | Treasure | a dead end, gold door | one item from the **treasure pool** on a pedestal |
 | Shop | a dead end, padlocked (costs 1 key) | the mole shopkeeper sells 2 items (15c, some 10c) and 2 pickups (3–8c) |
-| Boss | the farthest dead end, red toothed door | the floor's boss; afterwards a **boss pool** item, a heart and the trapdoor |
-| Secret | an empty cell touching 2+ rooms (never the boss room) | hidden; bomb the shared wall to open it. Holds a **secret pool** item |
+| Boss | the farthest dead end (never next to the start), red toothed door | the floor's boss; afterwards a **boss pool** item, a heart and the trapdoor. A Sprawl floor has two, back to back |
+| Secret | an empty cell wedged between rooms, usually 3–4 (never next to a boss room or The Nook; never needed to reach any room) | hidden; bomb a shared wall to open it (every neighbor has one). Holds a **secret pool** item |
 
 Tiles: rock (bombs break), pit (blocks walking; fliers cross), spikes (half a heart, unless flying),
 jar (2 shots break it; 30% drop chance), iron block (indestructible), marked rock (glowing X;
 bombing it drops 2–3 pickups).
 
+### Floor generation
+
+Code: `src/game/floorgen.js` (the plan: pure data, no art), `src/game/floor.js` (rooms and doors
+from the plan), checked by `tools/floortest.js`. Everything comes from the seed, so a seed always
+gives the same floors. A floor is grown again from scratch whenever a rule below fails (on average
+~8 tries, a few milliseconds).
+
+1. **The room tree.** A 13x13 grid; the start room is always the middle cell (6, 6).
+   - Rooms on floor *n*: `min(20, (0 or 1) + 5 + floor(n * 10 / 3))`, so 8–9 on floor 1, 11–12 on
+     floor 2, 15–16 on floor 3, 18–19 on floor 4 and 20 from floor 5. Curse of the Sprawl: x1.8 (max
+     45). Curse of the Torn Map: +4. The finale has its own size (6–8 rooms, 3 dead ends). There is
+     no hard mode yet (it would add 2–3).
+   - Rooms grow **breadth-first** from the start room: each room in the queue tries its 4 sides. A
+     neighbor cell is skipped if it is already a room, if it would touch **more than one** room
+     (so the floor stays a **tree**: no loops, no 2x2 blocks of rooms), if the floor is full, or on a
+     **50% coin flip**. Otherwise it becomes a room and joins the queue.
+   - **Big rooms** (2x1, 1x2, 2x2, L): a new room (not right next to the start) sometimes tries to
+     be a big room instead (floor data `bigChance`, 15% on floor 1 up to 30% in chapter 4). The
+     one-neighbor rule applies to the cell next to the door; all its cells must be empty, it must not
+     touch any other room (no loops), and an L's missing corner is kept empty for good. A big room
+     counts as one room, and as one step for distances.
+   - A room with exactly one neighbor is a **dead end**; only one-screen dead ends take special rooms.
+     A floor needs at least **5** (+1 on every floor but the first, +1 on a Sprawl floor).
+   - Thrown away and grown again if: the room count isn't reached, there are too few dead ends,
+     the start room has fewer than 2 neighbors, or a boss room ends up next to the start room.
+2. **Special rooms.** Distance = rooms walked through from the start. The dead ends are sorted
+   farthest first and handed out in this order (a room that fails its roll gives its dead end to
+   the next one; when the dead ends run out, the rest don't appear):
+   1. **Boss room**: the farthest dead end, always. A Sprawl floor gets **two boss rooms back to
+      back**: a second one grows off the far side of the first (the first holds the floor's own
+      boss and an item, the second the next floor's boss and the trapdoor).
+   2. **The Nook** (super secret), always: the next dead end that hangs off a **plain** room (never
+      a special room); it sits behind a bombable wall.
+   3. Then the list the game rolls on arrival (`chooseSpecials` in `src/game/specials.js`, odds in
+      `SPECIAL_ODDS`): **shop** (always in chapters 1–3, 66% in chapter 4), **treasure room** (always
+      in chapters 1–3, two on a Sprawl floor, 50% in chapter 4), **The Orrery** (chapters 1–3: 1% +
+      20% per treasure room you skipped, max 60%), **The Offering Room or The Gambler's Den** (15%,
+      +15% at full red hearts; the den 20% of the time, 50% with 2+ keys), **The Reading Room** (10%),
+      **The Thorned Room** (40%), **The Lair** (25%, +15% on floor 1), **The Gauntlet** (50%, only at
+      full red hearts and never on floor 1; **The Great Gauntlet** on a chapter's second floor),
+      **The Parlor or The Strongroom** (60% on a chapter's second floor with 5+ coins; the strongroom
+      20% of the time, 50% with 2+ keys), a **bedroom** (Nursery or Sickroom; 5%, +25% on your last
+      heart, chapters 1–3). Each also needs its unlock and its floor range.
+   A continued run reuses the saved list, so its floor comes out the same.
+3. **Narrow rooms.** Some plain one-screen rooms whose neighbors all line up become a **hall**
+   (neighbors only left/right) or a **shaft** (only up/down); the cells on their blocked sides are
+   kept empty for good.
+4. **The secret room** (placed last) goes in an **empty cell that isn't part of the tree**, so it
+   never replaces a room and is never needed to reach one. Every empty cell next to at least one
+   room is scored: a random 10–14, −3 if it touches only 2 rooms, −6 if only 1; the best wins, so
+   it is usually wedged between 3 or 4 rooms. Never next to a boss room, The Nook or another hidden
+   room, and only where every neighbor has a wall it can open into. **The Underneath**'s spot is an
+   empty cell two steps from a plain room (through another empty cell), touching nothing.
+5. **Doors** come from the grid: every two rooms that touch get a door in the exact middle of the
+   shared wall (a big room gets one per touching side of each screen). Rooms can only touch where
+   both have a wall middle (never an L's missing corner or a narrow room's blocked side). Hidden
+   rooms get **bombable walls** instead, on every neighbor that touches them. A door takes the look of
+   the room behind it (`doorKind`: boss, treasure, shop, Thorned Room...).
+6. **Doorways.** Every room keeps the tile in each doorway and the tile in front of it clear
+   (rocks, pits, spikes and jars there are removed when the room is built, whatever the layout), so
+   every door and bombable wall can be walked through, and the layouts themselves are checked so
+   every door can reach every other one.
+7. **Checks** after every floor: walking only through ordinary doors from the start reaches every
+   room except the hidden ones; every two touching rooms share a door on both sides; one (two)
+   boss rooms on the farthest dead end, not next to the start; the start has 2+ neighbors; exactly
+   one secret room and one Nook in the right places; special rooms on one-screen dead ends.
+   `tools/floortest.js` (open `tools/floortest.html` with the dev server running) generates 10,000
+   floors with random seeds, floor numbers, curses and special-room lists and checks every rule
+   above, plus the counts, the farthest-first order, the door looks and (every 50th floor) every
+   room's doorways and spawn spots. Last run: **10,000 / 10,000 passed**.
+
+**Safe spawn spots.** Everything that appears during play (beggars and machines from cards,
+chests, pickups, item pedestals, the trapdoor, enemies from cards, items and machines, hazards)
+gets its spot from one function, `room.findFreeSpot(x, y)` in `src/game/room.js`: it tries the wanted
+spot first (next to you, for a card), then spirals outward ring by ring. A tile is free only if it
+is floor (no wall, rock, pit, spikes, fire or other hazard), **more than 2 tiles from every door**
+(in a boss room, from every wall middle, since a deal door may open there), not under something
+already there (pedestal, machine, chest, trapdoor, pickup, enemy, shopkeeper), and putting
+something solid on it still leaves a walkable path between all the doors. Pickups and enemies may
+share a tile. If nothing in the room is that safe, the rules loosen step by step.
+
+**Debug floor map** (`?debug`, key **L**, or `WICK.game.toggleDebugFloorMap()`): the whole plan
+with every room colored by kind (secret rooms too), the steps from the start in each room, dead
+ends rimmed in yellow, blocked cells as dots, the ultra secret spot as a red U, the two boss rooms
+of a Sprawl floor as B1/B2, and the seed, room count, dead ends and how many tries the floor took.
+L, Esc or a tap closes it.
+
 ### Special rooms
 
-Data: `src/data/specialRooms.js` (names, doors, minimap icons, layouts, chances), logic:
-`src/game/specials.js`. Each floor picks its extra special rooms up front (`chooseExtras`, at most
-5) and the generator adds each one as a new dead end next to an ordinary room if there's space.
+Data: `src/data/specialRooms.js` (names, doors, minimap icons, layouts, odds in `SPECIAL_ODDS`),
+logic: `src/game/specials.js`. Each floor rolls its special rooms as you arrive (`chooseSpecials`)
+and they take the dead ends farthest first, in a fixed order (see **Floor generation** above);
+the chances in the table depend on your hearts, keys and coins.
 Every special room shows its name on a banner the first time you walk in and has its own minimap
 icon and door.
 
 | Room (id) | Door / how in | Chance, where | What's in it |
 |---|---|---|---|
-| **The Nook** (`supersecret`) | hidden wall of exactly **one** ordinary room (bomb it) | every floor | a **secret pool** item, or (half the time) a pile of hearts and silver |
+| **The Nook** (`supersecret`) | hidden wall of exactly **one** plain room (bomb it); it takes the farthest dead end after the boss's | every floor | a **secret pool** item, or (half the time) a pile of hearts and silver |
 | **The Underneath** (`ultrasecret`) | not connected at all: only a **red room** made next to it leads in | every floor has its spot (2 steps from an ordinary room) | 2 items (secret or bargain pool); spiky red room |
 | **Crimson rooms** (`red`) | made by the **Crimson Key** behind the wall nearest you (raw red doorframe) | anywhere there's an empty unit | an ordinary room of the floor, in red; links to every neighbor it touches |
-| **The Thorned Room** (`curse`) | thorned purple door: **half a heart every time you pass through** (flying is safe) | 45%, floor 2+ | spikes around the edge; a treasure item, or (40%) a chest and a locked chest |
-| **The Offering Room** (`sacrifice`) | normal | 25%, floor 2+ | a tall iron spike on an altar. Touch it to bleed half a heart (doesn't count against deals); payouts by count (below) |
-| **The Parlor** (`arcade`) | violet door ringed with bulbs, a **coin slot** (1 coin) | 40%, even floors | 4 machines picked from the arcade list (slots, the booth, the drawing chair, the thimblerigger, the claw, the penitent box, a beggar; see **Machines and beggars**) |
-| **The Gauntlet** (`challenge`) | steel door with crossed blades, **barred unless your red hearts are full** | 30% | a treasure item. Taking it springs an **ambush**: the doors shut, 3 waves of the variant's enemies |
-| **The Great Gauntlet** (`bosschallenge`) | barred unless full, teeth over the door | 25%, floor 3+ (instead of The Gauntlet) | a boss item; taking it brings 2 waves of a boss each from the chapter before, at 60% health; a heart after |
-| **The Reading Room** (`library`) | book-spine lintel, **costs a key** | 20%, floor 2+ | 2 **books**: take one, the other crumbles |
-| **The Strongroom** (`vault`) | riveted iron, **costs a key** | 20%, floor 2+ | 4 chests (2–4 pickups each) and 2 **locked chests** (a key each: 30% an item, else 4–6 pickups) |
-| **The Gambler's Den** (`dice`) | green felt door with pips, **costs a key** | 15%, floor 2+ | a big die face in the floor (1–6 pips, rolled per floor). Step on it once (below) |
-| **The Nursery** (`nursery`) | pink door | ~12%, chapter 2+ | a clean bed: lie down to heal all red hearts (+ a Vigil half heart if already full); 2 pickups |
-| **The Sickroom** (`sickroom`) | pink door | ~12%, chapter 2+ | a dirty bed: 2 Ash Hearts, but 2 crawlspiders come out of the sheets; 2 pickups |
-| **The Lair** (`miniboss`) | small skull keystone | 30%, floor 2+ | one of the variant's minibosses; a chest when it's dead |
+| **The Thorned Room** (`curse`) | thorned purple door: **half a heart every time you pass through** (flying is safe) | 40%, floor 2+ | spikes around the edge; a treasure item, or (40%) a chest and a locked chest |
+| **The Offering Room** (`sacrifice`) | normal | 15% (+15% at full red hearts), floor 2+ | a tall iron spike on an altar. Touch it to bleed half a heart (doesn't count against deals); payouts by count (below) |
+| **The Parlor** (`arcade`) | violet door ringed with bulbs, a **coin slot** (1 coin) | 60% on a chapter's second floor with 5+ coins (80% of the time; else The Strongroom) | 4 machines picked from the arcade list (slots, the booth, the drawing chair, the thimblerigger, the claw, the penitent box, a beggar; see **Machines and beggars**) |
+| **The Gauntlet** (`challenge`) | steel door with crossed blades, **barred unless your red hearts are full** | 50%, only at full red hearts, floor 2+ (first floor of a chapter) | a treasure item. Taking it springs an **ambush**: the doors shut, 3 waves of the variant's enemies |
+| **The Great Gauntlet** (`bosschallenge`) | barred unless full, teeth over the door | instead of The Gauntlet on a chapter's second floor | a boss item; taking it brings 2 waves of a boss each from the chapter before, at 60% health; a heart after |
+| **The Reading Room** (`library`) | book-spine lintel, **costs a key** | 10%, floor 2+ | 2 **books**: take one, the other crumbles |
+| **The Strongroom** (`vault`) | riveted iron, **costs a key** | in place of The Parlor (20% of the time, 50% with 2+ keys), floor 2+ | 4 chests (2–4 pickups each) and 2 **locked chests** (a key each: 30% an item, else 4–6 pickups) |
+| **The Gambler's Den** (`dice`) | green felt door with pips, **costs a key** | in place of The Offering Room (20% of the time, 50% with 2+ keys), floor 2+ | a big die face in the floor (1–6 pips, rolled per floor). Step on it once (below) |
+| **The Nursery** (`nursery`) | pink door | 5% (+25% on your last heart) for a bedroom, chapters 1–3; half the time this one | a clean bed: lie down to heal all red hearts (+ a Vigil half heart if already full); 2 pickups |
+| **The Sickroom** (`sickroom`) | pink door | the other half of the bedrooms | a dirty bed: 2 Ash Hearts, but 2 crawlspiders come out of the sheets; 2 pickups |
+| **The Lair** (`miniboss`) | small skull keystone | 25% (+15% on floor 1) | one of the variant's minibosses; a chest when it's dead |
 | **The Orrery** (`planetarium`) | starry blue door, **costs a key** | floors 2–6: 1% + **20% for every treasure room you left unopened** (max 60%; 1% once you've found one) | 3 **star items**: take one, the others fade |
 | **Crawlspace** | a ladder under **one rock** of an ordinary room (45% of floors from 2 on): bomb the right rock | | a side-view hole (`src/game/crawlspace.js`): walk, climb ladders, no jumping. An item on a ledge and a couple of coins; or (25%) a passage at the far end to **The Back Room** |
 | **The Back Room** (`blackmarket`) | through a crawlspace | | the mole sells 4 items (treasure/shop/boss pools) **for heart containers** (1 or 2); a ladder back up |
@@ -372,7 +499,11 @@ minimap uses small hand-drawn copies of the same shapes, since halving the pack 
 - **Map items** (field `map` on an item): **Cellar Blueprints** shows every room's shape,
   **Grave Compass** shows every special room's icon (where it is, even unseen), **Mole's Notes**
   reveals the secret and super secret rooms.
-- **Curse of the Torn Map** hides the minimap; the big map only says THE MAP IS TORN.
+- **What shows**: walking into a room shows every room behind its ordinary doors as an outline
+  (special rooms with their icon). Secret rooms and The Nook never show until their wall is
+  opened (or an item or the Rune of the Wax Gate reveals them); a map card shows every room but
+  the hidden ones.
+- **Curse of the Torn Map**: the minimap shows only the room you're in; the big map only says THE MAP IS TORN.
 
 ## PICKUPS
 
@@ -1344,6 +1475,10 @@ migrations, so updates never break old saves:
   v6 (part 6) adds how far each growing familiar has come (`helperXp`) and the transformations
   gained (`transforms`, kept for good); a v5 run is converted with none (a transformation its
   items already earn is given quietly when it loads, without the banner).
+  v7 (new floor generator) stores the floor's rolled special rooms and how often the die
+  reshuffled it (`floorPlan`), so the same floor is rebuilt on continue. A v6 run can't rebuild its
+  old map: it keeps everything you carry and starts the same floor again from the start room, on a
+  fresh map.
 
 ## SETTINGS
 

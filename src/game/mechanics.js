@@ -258,7 +258,7 @@ export const MECHANICS = {
       m.lookObj = lookOf(m.look, p);
     },
     enterRoom(g, p, m) {
-      const spot = g.room.findFreeSpot(p.x + (p.x < 192 ? 16 : -16), p.y);
+      const spot = g.room.findFreeSpot(p.x + (p.x < (g.room.x0 + g.room.R) / 2 ? 16 : -16), p.y);
       m.body.x = spot.x;
       m.body.y = spot.y;
     },

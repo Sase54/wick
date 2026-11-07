@@ -3,7 +3,7 @@
 //   keys/pad: left/right to browse, up/down to flip to the twisted versions, confirm to start
 //   touch:    swipe or tap the arrows to browse, tap the middle candle (or START) to start,
 //             TWISTED to flip, BACK to leave
-import { VIEW_W } from '../engine/canvas.js';
+import { VIEW_W, VIEW_H, UI_X, UI_Y } from '../engine/canvas.js';
 import { silhouette, makeCanvas, makeGlow } from '../engine/sprites.js';
 import { sfx } from '../engine/audio.js';
 import { CHARACTERS, CHARACTER_ORDER, twistedOf } from '../data/characters.js';
@@ -20,15 +20,15 @@ const N = CHARACTER_ORDER.length;
 const mod = (i) => ((i % N) + N) % N;
 const GLOW = makeGlow(46, 'rgba(255,150,60,0.45)');
 const GLOW_T = makeGlow(46, 'rgba(150,60,200,0.45)');
-const BASE_Y = 104;            // where the middle candle stands
-const PANEL = { x: 60, y: 108, w: 264, h: 86 };
+const BASE_Y = 104 + UI_Y;          // where the middle candle stands
+const PANEL = { x: 60 + UI_X, y: 108 + UI_Y, w: 264, h: 86 };
 const BTN = {
   back: { x: 4, y: 4, w: 40, h: 14, label: 'BACK' },
-  twisted: { x: 4, y: 198, w: 64, h: 14, label: 'TWISTED' },
-  start: { x: 316, y: 198, w: 64, h: 14, label: 'START' },
-  left: { x: 0, y: 30, w: 70, h: 76 },
-  right: { x: 314, y: 30, w: 70, h: 76 },
-  center: { x: 150, y: 14, w: 84, h: 94 },
+  twisted: { x: 4, y: VIEW_H - 18, w: 64, h: 14, label: 'TWISTED' },
+  start: { x: VIEW_W - 68, y: VIEW_H - 18, w: 64, h: 14, label: 'START' },
+  left: { x: 0, y: 30 + UI_Y, w: 70, h: 76 },
+  right: { x: VIEW_W - 70, y: 30 + UI_Y, w: 70, h: 76 },
+  center: { x: VIEW_W / 2 - 42, y: 14 + UI_Y, w: 84, h: 94 },
 };
 const inside = (b, x, y) => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h;
 
@@ -149,7 +149,7 @@ export class CharSelect {
 
   render(ctx) {
     ctx.fillStyle = this.twisted ? 'rgba(14,4,18,0.78)' : 'rgba(6,4,4,0.7)';
-    ctx.fillRect(0, 0, VIEW_W, 216);
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
 
     const title = this.twisted ? 'TWISTED CANDLES' : 'CHOOSE YOUR CANDLE';
     drawText(ctx, title, VIEW_W / 2, 4, { align: 'center', color: this.twisted ? '#c88af0' : '#f08a24' });
@@ -190,13 +190,13 @@ export class CharSelect {
       if (!open) drawText(ctx, '?', x, BASE_Y - 15 * s, { align: 'center', scale: s, color: '#c9b48a' });
       ctx.globalAlpha = 1;
     }
-    drawText(ctx, '<', 14, 60, { scale: 3, color: '#c9b48a' });
-    drawText(ctx, '>', VIEW_W - 26, 60, { scale: 3, color: '#c9b48a' });
+    drawText(ctx, '<', 14, 60 + UI_Y, { scale: 3, color: '#c9b48a' });
+    drawText(ctx, '>', VIEW_W - 26, 60 + UI_Y, { scale: 3, color: '#c9b48a' });
 
     this.renderInfo(ctx);
     this.button(ctx, BTN.twisted, this.twisted);
     this.button(ctx, BTN.start, false, !this.unlocked(this.idAt(this.sel)));
-    drawText(ctx, 'ARROWS: CHOOSE   UP: TWISTED', VIEW_W / 2, 202, { align: 'center', color: '#5a4a3a' });
+    drawText(ctx, 'ARROWS: CHOOSE   UP: TWISTED', VIEW_W / 2, VIEW_H - 14, { align: 'center', color: '#5a4a3a' });
   }
 
   renderInfo(ctx) {

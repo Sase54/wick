@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WICK floor test</title>
+<style>
+  body { background: #120c0a; color: #e8d9b0; font: 14px/1.4 monospace; margin: 0; padding: 16px; }
+  button { font: inherit; padding: 6px 14px; background: #3a2418; color: #e8d9b0; border: 1px solid #8a6a48; cursor: pointer; }
+  input { font: inherit; width: 7em; background: #1a1410; color: #e8d9b0; border: 1px solid #8a6a48; padding: 5px; }
+  pre { white-space: pre-wrap; background: #1a1410; padding: 12px; border: 1px solid #3a2a1e; }
+  .ok { color: #8ad06a; } .bad { color: #ff6a5a; }
+</style>
+</head>
+<body>
+<!-- Dev tool: generates floors and checks every rule of DESIGN.md "Floor generation".
+     Run the dev server (serve.ps1) and open http://localhost:8080/tools/floortest.html -->
+<h1>Floor generator check</h1>
+<p>Floors: <input id="count" type="number" value="10000" min="1"> <button id="go">Run</button> <span id="status"></span></p>
+<pre id="out">Press Run.</pre>
+<script type="module">
+  import { run } from './floortest.js';
+  const out = document.getElementById('out'), status = document.getElementById('status');
+  document.getElementById('go').onclick = async () => {
+    const total = Math.max(1, +document.getElementById('count').value || 10000);
+    status.textContent = 'running...';
+    out.textContent = '';
+    const batch = 500, all = { floors: 0, bad: 0, seconds: 0, maxAttempts: 0, problems: {}, examples: [] };
+    for (let from = 0; from < total; from += batch) {
+      const r = await run(Math.min(batch, total - from), { from, log: () => {} });
+      all.floors += r.floors; all.bad += r.bad; all.seconds += r.seconds;
+      all.maxAttempts = Math.max(all.maxAttempts, r.maxAttempts);
+      for (const [k, v] of Object.entries(r.problems)) all.problems[k] = (all.problems[k] || 0) + v;
+      all.examples.push(...r.examples.slice(0, 5 - all.examples.length));
+      status.textContent = `${all.floors} / ${total}`;
+    }
+    all.seconds = +all.seconds.toFixed(1);
+    status.innerHTML = all.bad ? `<span class="bad">${all.bad} floors broke a rule</span>` : `<span class="ok">all ${all.floors} floors passed</span>`;
+    out.textContent = JSON.stringify(all, null, 2);
+  };
+</script>
+</body>
+</html>

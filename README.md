@@ -204,13 +204,18 @@ src/
                            sprites (incl. Scale2x), pixel painter, RNG, pools, particles, storage
   game/                    game (rooms, combat, floors), player, health, character mechanics,
                            enemies, projectiles,
-                           room + room art, floor generation, doors, items, pickups, bombs,
+                           room + room art, floor generation (floorgen.js: the plan; floor.js:
+                           rooms and doors), safe spawn spots (room.js), doors, items, pickups, bombs,
                            shop, followers, active items, trapdoor, machines, chests,
                            trinkets and pocket things (consumables.js, trinketfx.js),
                            weapons (weapons.js), familiars (familiars.js)
   game/bosses/             one file per boss + shared base class + registry
-  ui/                      HUD, minimap, text (bitmap font), menus, wax panels, pause, title
-  data/                    everything you'd want to tweak or extend (see below)
+  ui/                      HUD, minimap, text (bitmap font), menus, wax panels, pause, title,
+                           debug floor map (debugmap.js)
+  data/                    everything you'd want to tweak or extend (see below); tuning.js holds the
+                           feel numbers (screen, walls, camera, light...)
+tools/                     dev pages: floortest.html (10,000-floor generator check), art previews,
+                           weapontest.js
 ```
 
 ## Adding content
@@ -232,6 +237,7 @@ Everything content-related is data. You can add to the game without touching the
 - **Bosses:** tuning in `src/data/bosses.js`; behavior and art as a class in
   `src/game/bosses/` (see `ratking.js` for a short one); register it in
   `src/game/bosses/index.js`; add its id to `BOSS_POOL`.
+- **Feel numbers** (screen size, wall thickness, camera, vignette, door light...): `src/data/tuning.js`.
 - **Floors:** `src/data/floors.js` (name, size, colors, difficulty, music key).
 - **Pickups and drop rates:** `src/data/pickups.js`.
 - **Trinkets:** an entry in `src/data/trinkets.js` (stats, shot traits, or `fx` effects from
@@ -264,6 +270,7 @@ and variant). In a run:
 | B | Jump to this floor's boss room |
 | V | Debug floor picker: jump to any chapter variant (first or second floor of the chapter); its **SPECIAL ROOMS** page opens any special room (deal rooms, boss rush, crawlspace...) behind a free wall of the room you're in |
 | N | Skip to the next floor |
+| L | Debug floor map: every room (secret ones too) colored by kind, steps from the start, dead ends, blocked cells, the ultra secret spot, the seed and how many tries the floor took (L, Esc or a tap closes it; also `WICK.game.toggleDebugFloorMap()` in the console) |
 | F3 | Toggle the FPS counter |
 
 In the browser console, `WICK.game.giveItem('magnet')` gives a specific item.

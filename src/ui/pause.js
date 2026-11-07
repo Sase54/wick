@@ -2,7 +2,7 @@
 // Right: Wick's stats and every item collected, in a grid: pick one (arrows, or tap it on a phone)
 // and its page slides over the left slab: name, quality, its line and the longer story.
 // Settings get their own slab.
-import { VIEW_W, VIEW_H } from '../engine/canvas.js';
+import { VIEW_W, VIEW_H, UI_X, UI_Y } from '../engine/canvas.js';
 import { drawText, wrapText } from './text.js';
 import { Menu } from './menu.js';
 import { drawWaxPanel, inkAlpha, INK } from './wax.js';
@@ -22,9 +22,9 @@ import { Q_COLORS } from './itemPicker.js';
 import { trinketIcon } from '../game/consumables.js';
 import { sfx } from '../engine/audio.js';
 
-const LEFT = { x: 18, y: 14, w: 152, h: 126 };
-const RIGHT = { x: 184, y: 14, w: 182, h: 186 };
-const INFO = { x: 18, y: 14, w: 152, h: 186 };   // the page of the item looked at (over LEFT)
+const LEFT = { x: 18 + UI_X, y: 14 + UI_Y, w: 152, h: 126 };
+const RIGHT = { x: 184 + UI_X, y: 14 + UI_Y, w: 182, h: 186 };
+const INFO = { x: 18 + UI_X, y: 14 + UI_Y, w: 152, h: 186 };   // the page of the item looked at (over LEFT)
 // the item grid in RIGHT; more rows than fit scroll
 const COLS = 7, ROWS = 3, CELL_W = 25, CELL_H = 26;
 const GRID = { x: RIGHT.x + 4, y: RIGHT.y + 82 };

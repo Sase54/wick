@@ -162,6 +162,8 @@ window.addEventListener('keydown', (e) => {
   // N: skip to the next floor, B: jump to this floor's boss room
   if (e.code === 'KeyN' && game.floorNum < FLOORS.length) game.startFloor(game.floorNum + 1);
   if (e.code === 'KeyB') game.teleportTo([...game.floor.cells.values()].find((c) => c.type === 'boss'));
+  // L: the whole floor plan (hidden rooms, dead ends, distances, seed)
+  if (e.code === 'KeyL') game.toggleDebugFloorMap();
   // V: jump to any floor variant
   if (e.code === 'KeyV') game.openDebugJump();
 });
