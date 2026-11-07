@@ -316,7 +316,8 @@ export class Player {
     dx /= len; dy /= len;
     const s = this.stats, sh = this.shot;
     const damage = this.shotDamage * damageMul;
-    const r = Math.max(3, Math.min(14, Math.round((4 + (damage - 3.5) * 0.3) * sh.sizeMul * sizeMul)));
+    const TT = TUNING.tears;
+    const r = Math.max(TT.sizeMin, Math.min(TT.sizeMax, Math.round((TT.sizeBase + (damage - 3.5) * TT.sizePerDamage) * sh.sizeMul * sizeMul)));
     const speed = s.shotSpeed * SHOT_SPEED_PX * (opt.bomb ? 0.8 : 1);
     const count = opt.spray || 1 + sh.multishot;
     const base = Math.atan2(dy, dx);
@@ -342,13 +343,14 @@ export class Player {
           x: em.x + cx * 5 - cy * eye * side,
           y: em.y + cy * 3 + cx * eye * side + 2,
           z: opt.bomb ? 4 : TUNING.player.eyeHeight,
-          vx: cx * speed * sp + (moving ? this.vx * 0.35 : 0),
-          vy: cy * speed * sp + (moving ? this.vy * 0.35 : 0),
+          vx: cx * speed * sp + (moving ? this.vx * TT.inherit : 0),
+          vy: cy * speed * sp + (moving ? this.vy * TT.inherit : 0),
           r: Math.max(3, Math.round(((isMe ? r : Math.max(3, r - 1)) + (crit ? 2 : 0)) * sz)),
           damage: opt.bomb ? dmg * 2.2 + 4 : dmg,
           range: s.range * TILE * (opt.spray ? 0.7 + Math.random() * 0.5 : 1),
           team: 'player',
-          knockback: 48 * sh.knockbackMul * (crit ? 1.6 : 1),
+          // faster and bigger shots push harder
+          knockback: TT.knockback * s.shotSpeed * (r / TT.sizeBase) * sh.knockbackMul * (crit ? 1.6 : 1),
           style: crit ? 'gold' : rolled && !opt.style ? STATUS[rolled].style : style,
           homing: sh.homing, pierce: sh.pierce, spectral: sh.spectral || sh.orbit,
           bounce: sh.bounce, split: sh.split, burn: roll.burn || fiend,

@@ -2,7 +2,8 @@
 import { ITEMS, DEFAULT_PRICE, FALLBACK_ITEM, SHOT_STYLE_PRIORITY, QUALITY_WEIGHT, ACTIVE_TEXT, STATUS, POOLS, greedPool } from '../data/items.js';
 import { STAT_LABELS } from './stats.js';
 import { ITEM_ICONS, ITEM_COLORS } from '../data/itemSprites.js';
-import { BASE_STATS, clampStats } from './stats.js';
+import { BASE_STATS, clampStats, tearDelay } from './stats.js';
+import { TUNING } from '../data/tuning.js';
 import { buildSprite, makeShadow, makeGlow, makeCanvas, scale2x } from '../engine/sprites.js';
 import { drawText } from '../ui/text.js';
 import { LOOKS } from '../data/characterSprites.js';
@@ -189,6 +190,10 @@ export function computeLoadout(player) {
 
   const stats = {};
   for (const k of Object.keys(BASE_STATS)) stats[k] = (BASE_STATS[k] + (add[k] ?? 0)) * (mul[k] ?? 1);
+  // fire rate: "+fire rate" adds to the tears stat T, which goes through Isaac's formula
+  stats.tears = add.fireRate ?? 0;
+  stats.tearDelay = tearDelay(stats.tears) + (add.tearDelay ?? 0);
+  stats.fireRate = (TUNING.tears.framesPerSecond / (Math.max(0, stats.tearDelay) + 1)) * (mul.fireRate ?? 1);
   clampStats(stats);
   shot.style = SHOT_STYLE_PRIORITY.find((s) => styles.has(s)) || 'wax';
   // the first form in FORM_PRIORITY wins; barrage and lobbed change whatever form it is

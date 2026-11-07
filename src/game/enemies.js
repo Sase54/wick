@@ -9,6 +9,7 @@
 import { PixelGrid } from '../engine/pixelgrid.js';
 import { flipX, silhouette, tint, makeShadow, makeGlow } from '../engine/sprites.js';
 import { ENEMY_ART } from '../data/enemyArt.js';
+import { TUNING } from '../data/tuning.js';
 import { enemyDef, BLOOD, threatOf, ROOM_MINION_CAP } from '../data/enemies.js';
 import { CHAMPIONS, CHAMPION_WEIGHTS } from '../data/champions.js';
 import { moveCircle } from './collision.js';
@@ -1975,6 +1976,7 @@ export class Enemy {
   update(dt, g) {
     this.t += dt;
     this.flash = Math.max(0, this.flash - dt);
+    this.redT = Math.max(0, (this.redT || 0) - dt);
     this.atkT = Math.max(0, this.atkT - dt);
     if (this.spawnT > 0) {
       this.spawnT -= dt;
@@ -2143,7 +2145,8 @@ export class Enemy {
       g.particles.burst(this.x - dx * this.r, this.y - dy * this.r - 6, 5, { colors: ['#fff3c0', '#c8c0a8'], speed: 70, z: 8 });
     }
     this.hp -= dmg;
-    this.flash = 0.1;
+    this.flash = TUNING.tears.hitFlashWhite;
+    this.redT = TUNING.tears.hitFlashWhite + TUNING.tears.hitFlashRed;
     sfx('hit');
     if (!this.def.static && this.state !== 'charge' && !this.def.mini) {
       this.kx += dx * force;
@@ -2344,6 +2347,7 @@ export class Enemy {
       }
     }
     if (this.flash > 0) img = tinted(img, '#ffffff', 1);
+    else if (this.redT > 0) img = tinted(img, '#e02a20', 0.55);   // after a hit: white, then red
     this.renderGear(ctx, ox, oy, 'back');
     ctx.globalAlpha = alpha;
     ctx.drawImage(img, x, y, w, h);

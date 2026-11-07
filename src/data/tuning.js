@@ -60,4 +60,33 @@ export const TUNING = {
     meltTime: 1.4,          // seconds of the melting animation
     deathPause: 0.8,        // then a short pause before the death screen
   },
+
+  // ---- 3. Shooting (tears)
+  tears: {
+    // Fire rate, Isaac's formula. T = the tears stat (0 at the start; "+fire rate" on items adds to T):
+    //   T >= 0:          delay = base - mul * sqrt(1 + 1.3 * T), never below delayCap from T alone
+    //   -0.77 < T < 0:   delay = base - mul * sqrt(1 + 1.3 * T) - mul * T
+    //   T <= -0.77:      delay = base - mul * T
+    //   shots per second = framesPerSecond / (delay + 1)   (30 / 11 = 2.73 at the start)
+    // Items with tearDelay change the delay directly and fire rate multipliers multiply the result;
+    // both can go past the cap.
+    delayBase: 16,
+    delayMul: 6,
+    delaySlope: 1.3,
+    delayCap: 5,
+    framesPerSecond: 30,
+    shotSpeed: 180,         // px per second at shot speed 1.0 (7.5 tiles), scales linearly
+    range: 6.5,             // tiles at the start (the range stat)
+    inherit: 0.35,          // share of Wick's own movement a shot keeps (moving sideways curves it)
+    arcLift: 28,            // px/s upward bump when a shot's range runs out, before it drops
+    fallGravity: 520,       // px/s² pulling a falling shot down to the floor
+    sizeBase: 4,            // shot radius (px) at 3.5 damage...
+    sizePerDamage: 0.3,     // ...growing this much per point of damage above 3.5
+    sizeMin: 3, sizeMax: 14,
+    alpha: 0.88,            // shots are a little see-through
+    knockback: 48,          // px/s push on an enemy hit at shot speed 1.0 and size 4...
+    // ...times shot speed and times (size / 4), so faster and bigger shots push harder
+    hitFlashWhite: 0.06,    // an enemy hit flashes white...
+    hitFlashRed: 0.1,       // ...then red
+  },
 };

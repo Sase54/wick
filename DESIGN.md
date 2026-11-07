@@ -73,6 +73,32 @@ there and the game follows; nothing else needs editing. Sections are added as th
   boss; a ? for hazards), the floor, time, rooms, kills, damage taken, the seed, and **every item
   you carried**.
 
+### 3. Shooting (`TUNING.tears`)
+
+- **Fire rate** uses Isaac's formula. Every "+fire rate" (items, characters, pills) adds to the
+  **tears stat T** (0 at the start), and the delay between shots in frames (30 per second) is:
+  `16 - 6·sqrt(1 + 1.3·T)` for T ≥ 0 (never below **5** from T alone), `16 - 6·sqrt(1 + 1.3·T) - 6·T`
+  for -0.77 < T < 0, and `16 - 6·T` for T ≤ -0.77. Shots per second = `30 / (delay + 1)`: **2.73**
+  at the start, 3.23 at T 0.5, 3.80 at T 1, and the cap of **5.00** from T 2 up; T -0.5 gives 1.82,
+  T -1 gives 1.30. Fire rate multipliers (`fireRateMul`) multiply the result and an item stat
+  `tearDelay` changes the delay directly; both can go past the cap. The sidebar shows shots per
+  second with 2 decimals. Every other weapon (beams, bombs, charge shots...) times itself from this
+  number as before.
+- **Holding** a direction fires over and over at that rate; **tapping** fires at once if the delay
+  has passed since the last shot.
+- **Shot speed** 1.0 = **180 px/s** (7.5 tiles a second), scaling linearly.
+- **Range** starts at **6.5 tiles**. A shot flies level at eye height (16 px) above its shadow,
+  then near the end of its range bumps up a little (28 px/s) and drops to the floor and splashes,
+  landing right at the end of its range (the drop is part of it). More range = longer level flight.
+- Shots keep **35%** of Wick's own movement, so strafing while shooting bends them that way.
+- Every shot has a **shadow** on the floor; player shots are slightly see-through wax droplets
+  (88%) with a highlight, radius 4 px at 3.5 damage, +0.3 px per point of damage (3–14 px).
+- Shots splash on walls and on rocks and other solid tiles (spectral shots fly over).
+- **Hitting an enemy**: it flashes white (0.06 s) then red (0.1 s), is pushed in the shot's direction
+  (48 px/s × shot speed × size/4, so faster and bigger shots push harder), and the shot splashes.
+- **Touch**: the shooting pad shoots in **4 directions** like Isaac by default; Settings > TOUCH AIM
+  > 8-WAY allows diagonals.
+
 ---
 
 ## HEARTS
@@ -102,8 +128,9 @@ You die when nothing is left (no blood, no extra hearts, no Vigil heart).
 
 ## CHARACTERS
 
-Base stats (`src/game/stats.js`): damage 3.50, fire rate 2.50 shots/s, range 6.5 tiles,
-shot speed 1.00, speed 1.00, luck 0. Characters add to these (`x` multiplies).
+Base stats (`src/game/stats.js`): damage 3.50, fire rate 2.73 shots/s (tears stat 0), range 6.5
+tiles, shot speed 1.00, speed 1.00, luck 0. Characters add to these (`x` multiplies); a character
+or item's "fire rate +n" adds n to the **tears stat**, see FEEL AND TUNING section 3.
 Data: `src/data/characters.js`; looks: `src/data/characterSprites.js`; unique rules:
 `src/game/mechanics.js`. Only Wick is unlocked at first. Pick on the **character select**
 screen (NEW RUN / SEEDED RUN): left/right or swipe to browse, up/down or the TWISTED tab for the

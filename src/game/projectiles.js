@@ -9,7 +9,8 @@ import { PLACED_BOMB, PICKUP_COLORS } from '../data/pickupSprites.js';
 import { PAL } from '../data/palette.js';
 import { sfx } from '../engine/audio.js';
 
-const FALL_GRAVITY = 520;
+import { TUNING } from '../data/tuning.js';
+const FALL_GRAVITY = TUNING.tears.fallGravity;
 const HOMING_RANGE = 150;
 const HOMING_TURN = 5; // radians per second
 
@@ -143,6 +144,12 @@ export class Projectiles {
       const T = Math.max(0.2, p.range / p.speed);
       p.vz = (FALL_GRAVITY * T) / 2 - p.z / T;
     }
+    // a shot flies level, then arcs down and splashes: the drop is part of its range, so it starts
+    // early enough to land right at the end of it
+    const lift = TUNING.tears.arcLift;
+    const tFall = (lift + Math.sqrt(lift * lift + 2 * FALL_GRAVITY * Math.max(0, p.z))) / FALL_GRAVITY;
+    p.fallAt = Math.max(p.range * 0.3, p.range - p.speed * tFall);
+    p.falling = false;
     p.target = null;
     p.retarget = 0;
     p.removed = false;
@@ -193,7 +200,8 @@ export class Projectiles {
         if (p.z <= 0) { this.splash(p, true); return false; }
       } else if (p.bomb) {
         p.dist = 0;
-      } else if (p.dist >= p.range) {
+      } else if (p.dist >= p.fallAt) {
+        if (!p.falling) { p.falling = true; p.vz = TUNING.tears.arcLift; }
         p.vz -= FALL_GRAVITY * step;
         p.z += p.vz * step;
         if (p.z <= 0) {
@@ -509,6 +517,7 @@ export class Projectiles {
     const highlight = this.game.settings.tearHighlight;
     for (const p of this.pool.live) {
       if (p.removed) continue;
+      ctx.globalAlpha = 1;
       const s = orbSprite(p.r, p.style);
       const x = Math.round(p.x - p.r + ox), y = Math.round(p.y - p.z - p.r + oy);
       if (highlight && p.team === 'enemy') {
@@ -522,6 +531,7 @@ export class Projectiles {
         ctx.drawImage(h.rim, x - 1, y - 1);
       }
       if (p.style === 'ghost') ctx.globalAlpha = 0.75;
+      else if (p.team === 'player') ctx.globalAlpha = TUNING.tears.alpha;   // see-through droplets
       if (p.bomb) {
         // a little rolling bomb, flashing faster as the fuse runs out
         BOMB_ART ??= PLACED_BOMB.frames.map((f) => buildSprite(f, PICKUP_COLORS));
@@ -549,5 +559,6 @@ export class Projectiles {
       ctx.drawImage(s, x, y);
       ctx.globalAlpha = 1;
     }
+    ctx.globalAlpha = 1;
   }
 }
