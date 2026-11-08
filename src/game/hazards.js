@@ -5,6 +5,7 @@
 import { sfx } from '../engine/audio.js';
 import { TILE } from './constants.js';
 import { ROOM_MINION_CAP } from '../data/enemies.js';
+import { TUNING } from '../data/tuning.js';
 
 // ---- Rat hole (The Undercroft) ------------------------------------------------------------
 // A hole at the foot of a wall. While the room's own enemies are alive, a gnawer squeezes out
@@ -213,7 +214,7 @@ export function fireBurst(g, x, y, n, r = 14) {
 // A pile of burning junk. Touching it hurts; four shots put it out (a bomb too).
 class Fireplace {
   constructor(x, y) {
-    this.x = x; this.y = y; this.r = 9; this.hp = 4; this.t = Math.random() * 3;
+    this.x = x; this.y = y; this.r = 9; this.hp = this.maxHp = TUNING.obstacles.fireHits; this.t = Math.random() * 3;
     this.hitBy = new WeakSet();
   }
 
@@ -236,6 +237,7 @@ class Fireplace {
 
   snuff(g) {
     this.out = true;
+    g.rollDrops('fireplace', this.x, this.y);   // the ashes sometimes hold something
     g.particles.burst(this.x, this.y - 6, 12, { colors: ['#5a524a', '#3a3430', '#8a8078'], speed: 40, z: 8, vz: 50, life: 0.8 });
   }
 
@@ -252,7 +254,7 @@ class Fireplace {
       ctx.fillRect(x - 5, y - 2, 10, 2);
       return;
     }
-    const k = this.hp / 4, f = Math.floor(this.t * 10) % 2;
+    const k = this.hp / this.maxHp, f = Math.floor(this.t * 10) % 2;
     const h = Math.round((8 + f * 2) * (0.5 + k * 0.5));
     for (const [col, w, hh] of [['#e04a18', 7, h], ['#ff8a2a', 5, h - 2], ['#ffd25a', 3, h - 5]]) {
       if (hh <= 0) continue;

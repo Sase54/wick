@@ -145,4 +145,39 @@ export const TUNING = {
     bossSlowmo: 0.8, bossSlowmoScale: 0.3,
     bossGibs: 40,
   },
+
+  // ---- 8. Room flow
+  flow: {
+    roomCharge: 1,          // active item charges for clearing a one-screen room...
+    bigRoomCharge: 2,       // ...and a bigger one (2x1, 2x2, L)
+    counterPop: 0.3,        // seconds a HUD counter (coins, bombs, keys) pops when it changes
+    heartPulse: 0.9,        // hearts on the floor thump this often (seconds)
+    // the trapdoor after a boss: waits, then its flaps fold open (dust puff and a thud)
+    trapdoorDelay: 0.6, trapdoorOpen: 0.55,
+    // jumping in: a hop up, then dropping into the hole, then the next floor
+    jumpHop: 0.3, jumpHeight: 14, jumpFall: 0.45, descendTime: 1.3,
+  },
+
+  // ---- 9. Obstacles and bombs
+  obstacles: {
+    // in normal rooms some of the layout's rocks become other things (paths stay the same):
+    bigRockChance: 0.5,     // a 2x2 square of rocks becomes one big boulder
+    heapChance: 0.12,       // a rock becomes a heap of old wax...
+    kegChance: 0.04,        // ...or a powder keg
+    potHits: 2,             // shots to break a variant's breakable (jar, barrel, cocoon...)
+    heapHits: 4,            // shots to knock a wax heap down (it shrinks a stage each hit)
+    kegHits: 3,             // shots before a powder keg blows
+    kegDelay: 0.15,         // a keg caught in a blast goes off this much later (chain reactions)
+    kegRadius: 1.25,        // a keg blast is this many times a bomb's (reaches a keg 2 tiles away, so they chain)
+    fireHits: 4,            // shots to put out a fireplace
+  },
+  bombs: {
+    fuse: 1.5,              // seconds from placing to the blast
+    radius: 34,             // blast radius (px)
+    damage: 40,             // to enemies and bosses
+    playerDamage: 2,        // half hearts to Wick if he's caught in his own blast (a full heart)
+    knockback: 180,         // push on enemies caught in it
+    pickupPush: 120,        // push on pickups
+    scorch: 16,             // size of the burn mark it leaves
+  },
 };

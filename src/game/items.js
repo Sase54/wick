@@ -443,7 +443,12 @@ export class Pedestal {
       // the Veiled Altars curse: every item hides behind a question mark
       const icon = Pedestal.veiled ? veiledIcon() : itemIcon(this.item);
       const bob = Math.round(Math.sin(this.t * 2.5) * 1.5);
-      const iy = top - 2 - icon.height + bob;
+      const iy = top - 6 - icon.height + bob;   // floats a little above the pedestal
+      // its shadow on the pedestal top, smaller while it floats higher
+      const sw = Math.max(4, Math.round(icon.width * 0.6) + bob * 2 - 1);
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(x - Math.floor(sw / 2), top + 1, sw, 1);
+      ctx.fillRect(x - Math.floor(sw / 2) + 1, top, sw - 2, 3);
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = 0.35;
       ctx.drawImage(a.glow, x - 24, iy + icon.height / 2 - 24);

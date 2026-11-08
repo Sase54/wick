@@ -2,7 +2,7 @@
 // Strategy: try the network first (so updates show up right away), fall back to the
 // cache when offline. Everything is also cached up front on install.
 // When you add a new file to the game, add it to ASSETS and bump VERSION.
-const VERSION = 'wick-v28';
+const VERSION = 'wick-v30';
 const ASSETS = [
   './',
   'index.html',

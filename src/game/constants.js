@@ -27,6 +27,9 @@ export const T = {
   BLOCK: 5,     // indestructible
   TINTED: 6,    // special rock, drops loot when bombed
   WALL: 7,      // solid wall inside the grid (L-shaped and narrow rooms)
+  BIGROCK: 8,   // a quarter of a 2x2 boulder (all four break together)
+  HEAP: 9,      // a heap of old wax: shots knock it down in stages
+  KEG: 10,      // a powder keg: shoot it a few times (or bomb it) and it blows up
 };
 
 // Character codes used in room template strings (src/data/rooms.js).

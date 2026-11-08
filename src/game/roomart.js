@@ -995,32 +995,32 @@ const FLOOR_PROPS = {
 // ---------------------------------------------------------------------------
 const tileArtCache = new Map();
 
-function blobSprite(rng, palette, { rx = TILE * 0.43, ry = TILE * 0.38, cx = TILE / 2, cy = TILE / 2 + 1, wobble = 0.12, cracks = 1, moss = 0, mossColor = PAL.moss } = {}) {
-  const [c, ctx] = makeCanvas(TILE, TILE);
-  const img = ctx.createImageData(TILE, TILE);
+function blobSprite(rng, palette, { size = TILE, rx = size * 0.43, ry = size * 0.38, cx = size / 2, cy = size / 2 + 1, wobble = 0.12, cracks = 1, moss = 0, mossColor = PAL.moss } = {}) {
+  const [c, ctx] = makeCanvas(size, size);
+  const img = ctx.createImageData(size, size);
   const d = img.data;
   const edge = new Float32Array(17).map(() => 1 + rng.float(-wobble, wobble * 0.5));
   edge[16] = edge[0];
-  const noise = valueNoise(rng, 4, TILE, TILE);
+  const noise = valueNoise(rng, 4, size, size);
 
-  const mask = new Uint8Array(TILE * TILE);
-  for (let y = 0; y < TILE; y++) {
-    for (let x = 0; x < TILE; x++) {
+  const mask = new Uint8Array(size * size);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
       const dx = (x + 0.5 - cx) / rx, dy = (y + 0.5 - cy) / ry;
       const ang = (Math.atan2(dy, dx) / (Math.PI * 2) + 1) % 1;
       const fi = ang * 16, i0 = fi | 0, t = fi - i0;
       const m = edge[i0] + (edge[i0 + 1] - edge[i0]) * t;
-      if (dx * dx + dy * dy <= m * m) mask[y * TILE + x] = 1;
+      if (dx * dx + dy * dy <= m * m) mask[y * size + x] = 1;
     }
   }
-  const at = (x, y) => x >= 0 && y >= 0 && x < TILE && y < TILE && mask[y * TILE + x] === 1;
+  const at = (x, y) => x >= 0 && y >= 0 && x < size && y < size && mask[y * size + x] === 1;
   const set = (x, y, col, a = 255) => {
-    const i = (y * TILE + x) * 4;
+    const i = (y * size + x) * 4;
     d[i] = col[0]; d[i + 1] = col[1]; d[i + 2] = col[2]; d[i + 3] = a;
   };
 
-  for (let y = 0; y < TILE; y++) {
-    for (let x = 0; x < TILE; x++) {
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
       if (!at(x, y)) {
         if (at(x - 1, y - 3) || at(x, y - 2)) set(x, y, [0, 0, 0], 110); // contact shadow
         continue;
@@ -1039,7 +1039,7 @@ function blobSprite(rng, palette, { rx = TILE * 0.43, ry = TILE * 0.38, cx = TIL
   ctx.putImageData(img, 0, 0);
 
   ctx.fillStyle = css(palette[0]);
-  const s = TILE / 32;
+  const s = size / 32;
   for (let i = 0; i < cracks; i++) {
     let x = Math.round(rng.int(-6, 6) * s + cx), y = Math.round(rng.int(-6, 2) * s + cy);
     for (let k = 0; k < rng.int(3, 7); k++) {
@@ -1415,6 +1415,83 @@ function makeMarkedRock(rng) {
   return c;
 }
 
+// A heap of old wax, knocked down a stage per hit (stage 0 = whole, 3 = a last lump).
+// Lumpy mounds of melted candle ends with drips down the sides and a few burnt wicks sticking out.
+function makeHeapStages(rng) {
+  const OUT = '#2a1e14', W = ['#7a6448', '#a8906a', '#c9b48a', '#e8d9b0', '#fff6dc'];
+  return [1, 0.8, 0.6, 0.42].map((k, stage) => {
+    const [c, ctx] = makeCanvas(TILE, TILE);
+    const lumps = [[0, 0, 0.5, 0.42], [-0.28, 0.12, 0.3, 0.26], [0.28, 0.14, 0.3, 0.24], [0.02, -0.22, 0.3, 0.26]]
+      .slice(0, stage < 2 ? 4 : stage < 3 ? 3 : 1);
+    const cx = TILE / 2, base = TILE - 4;
+    const inside = (x, y) => lumps.some(([lx, ly, rx, ry]) => {
+      const dx = (x - cx - lx * TILE * k) / (rx * TILE * k), dy = (y - (base - TILE * 0.32 * k) - ly * TILE * k) / (ry * TILE * k);
+      return dx * dx + dy * dy <= 1 && y <= base;
+    });
+    for (let y = 0; y < TILE; y++) {
+      for (let x = 0; x < TILE; x++) {
+        if (!inside(x, y)) {
+          if (inside(x, y - 1) && y <= base + 1) { ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(x, y, 1, 1); }
+          continue;
+        }
+        const edge = !inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || !inside(x, y + 1);
+        let v = 2.6 - (x - cx) / (TILE * 0.5) - (y - base + TILE * 0.3 * k) / (TILE * 0.25 * k) + rng.float(-0.4, 0.4);
+        if (!inside(x, y + 2)) v -= 1;
+        ctx.fillStyle = edge ? OUT : W[Math.max(0, Math.min(4, Math.round(v)))];
+        ctx.fillRect(x, y, 1, 1);
+      }
+    }
+    // drips down the side and burnt wicks standing up out of the top (never two at the same
+    // height, so the heap can't look like a face)
+    const tops = [];
+    for (let i = 0; i < 3 - Math.min(2, stage); i++) {
+      const x = Math.round(cx + rng.int(-6, 6) * k);
+      if (tops.some((t) => Math.abs(t - x) < 3)) continue;
+      let y = 0;
+      while (y < base && !inside(x, y)) y++;
+      if (y >= base) continue;
+      tops.push(x);
+      if (rng.chance(0.6)) { ctx.fillStyle = W[4]; ctx.fillRect(x, y, 1, rng.int(2, 4)); }
+      if (stage < 2) {
+        const h = 2 + tops.length;
+        ctx.fillStyle = '#6a4c36'; ctx.fillRect(x, y - h, 1, h);
+        ctx.fillStyle = '#e8702a'; ctx.fillRect(x, y - h, 1, 1);
+      }
+    }
+    return c;
+  });
+}
+
+// A powder keg: a squat barrel with red hoops and a big pale flame mark on the front.
+function makeKegTile() {
+  const [c, ctx] = makeCanvas(TILE, TILE);
+  const top = 2, bot = TILE - 2, h = bot - top, cx = TILE / 2;
+  const r = (x, y, ww, hh, col) => { ctx.fillStyle = col; ctx.fillRect(x, y, ww, hh); };
+  // the half-width of the barrel on each row: bulging in the middle
+  const half = (y) => Math.round(TILE * 0.24 + TILE * 0.07 * Math.sin(Math.PI * (y - top) / h));
+  r(cx - half(bot - 1), bot, half(bot - 1) * 2, 1, 'rgba(0,0,0,0.45)');   // contact shadow
+  for (let y = top; y < bot; y++) {
+    const hw = half(y), x0 = cx - hw, w = hw * 2;
+    r(x0 - 1, y, w + 2, 1, '#1a100a');                               // outline
+    if (y === top || y === bot - 1) continue;
+    r(x0, y, w, 1, '#6a4428');
+    r(x0 + 1, y, 2, 1, '#9a6a3e');                                   // light side
+    r(x0 + w - 2, y, 2, 1, '#44291a');                               // dark side
+    for (const sx of [-3, 2]) r(cx + sx, y, 1, 1, '#523420');        // staves
+  }
+  r(cx - half(top) + 1, top + 1, half(top) * 2 - 2, 2, '#3a2416');   // the lid
+  r(cx - half(top) + 2, top + 1, half(top) * 2 - 4, 1, '#4e321e');
+  for (const yy of [top + 3, bot - 4]) {                             // red hoops
+    const hw = half(yy);
+    r(cx - hw, yy, hw * 2, 2, '#8a1e14'); r(cx - hw, yy, hw * 2, 1, '#d0402e');
+  }
+  // the pale flame mark in the middle
+  const fy = top + Math.floor(h / 2);
+  for (const [dx, dy, ww] of [[0, -3, 1], [-1, -2, 2], [-1, -1, 3], [-2, 0, 4], [-2, 1, 4], [-1, 2, 2]]) r(cx + dx, fy + dy, ww, 1, '#f4e6b8');
+  r(cx - 1, fy, 1, 2, '#e8702a'); r(cx, fy + 1, 1, 1, '#e8702a');
+  return c;
+}
+
 export function getTileArt(look = DEFAULT_LOOK) {
   let art = tileArtCache.get(look.id);
   if (art) return art;
@@ -1426,6 +1503,9 @@ export function getTileArt(look = DEFAULT_LOOK) {
     pot: makePotTile(look.pot),
     spikes: makeSpikeTile(),
     block: makeBlockTile(),
+    bigRock: blobSprite(rng, rock, { size: TILE * 2, rx: TILE * 0.92, ry: TILE * 0.8, cy: TILE + 2, cracks: 4, moss: look.rockMoss === false ? 0 : rng.int(1, 5), mossColor: look.stain }),
+    heap: makeHeapStages(rng),
+    keg: makeKegTile(),
   };
   tileArtCache.set(look.id, art);
   return art;
@@ -1455,6 +1535,7 @@ export function composeRoom(room) {
   const art = getTileArt(look);
   const ctx = room.bgCtx;
   ctx.drawImage(room.base, 0, 0);
+  const anchors = room.bigRockAnchors();
   for (let r = 0; r < room.rows; r++) {
     for (let c = 0; c < room.cols; c++) {
       if (room.get(c, r) === T.PIT) drawPit(ctx, room, c, r, room.x0 + c * TILE, room.y0 + r * TILE, look);
@@ -1469,6 +1550,16 @@ export function composeRoom(room) {
       else if (t === T.TINTED) ctx.drawImage(art.marked, x, y);
       else if (t === T.SPIKES) ctx.drawImage(art.spikes, x, y);
       else if (t === T.BLOCK) ctx.drawImage(art.block, x, y);
+      else if (t === T.BIGROCK) { if (anchors.has(r * room.cols + c)) ctx.drawImage(art.bigRock, x, y); }
+      else if (t === T.HEAP) ctx.drawImage(art.heap[Math.min(3, room.hits[r * room.cols + c])], x, y);
+      else if (t === T.KEG) {
+        ctx.drawImage(art.keg, x, y);
+        // cracks and a smoking fuse hole as it takes hits
+        const hits = room.hits[r * room.cols + c];
+        ctx.fillStyle = PAL.outline;
+        if (hits > 0) { ctx.fillRect(x + 8, y + 7, 1, 4); ctx.fillRect(x + 9, y + 11, 1, 2); }
+        if (hits > 1) { ctx.fillRect(x + 15, y + 9, 1, 3); ctx.fillRect(x + 14, y + 12, 1, 3); ctx.fillStyle = '#ff8a2a'; ctx.fillRect(x + 11, y + 3, 2, 1); }
+      }
       else if (t === T.POT) {
         ctx.drawImage(art.pot, x, y);
         if (room.hits[r * room.cols + c] > 0) {

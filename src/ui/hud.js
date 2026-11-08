@@ -84,13 +84,23 @@ export function drawHearts(ctx, health, x, y, t = 0) {
   }
 }
 
-function drawCounters(ctx, player, x, y) {
-  const a = art();
-  const rows = [[a.coin, player.coins], [a.bomb, player.bombs], [a.key, player.keys]];
-  rows.forEach(([icon, n], i) => {
+// Coins, bombs and keys. A counter that changes pops: the icon swells and the number flashes.
+function drawCounters(ctx, game, x, y) {
+  const a = art(), player = game.player;
+  const rows = [['coins', a.coin, player.coins], ['bombs', a.bomb, player.bombs], ['keys', a.key, player.keys]];
+  const pop = (player._pop ??= { last: { coins: player.coins, bombs: player.bombs, keys: player.keys }, t: {} });
+  const T = TUNING.flow.counterPop;
+  rows.forEach(([k, icon, n], i) => {
+    if (n !== pop.last[k]) { pop.t[k] = { at: game.time, up: n > pop.last[k] }; pop.last[k] = n; }
+    const age = pop.t[k] ? game.time - pop.t[k].at : 99;
+    const kk = age < T ? 1 - age / T : 0;                     // 1 at the change, down to 0
     const ry = y + i * 16;
-    ctx.drawImage(icon, x + Math.floor((13 - icon.width) / 2), ry + Math.floor((14 - icon.height) / 2));
-    drawText(ctx, String(n).padStart(2, '0'), x + 16, ry + 4);
+    const s = 1 + kk * 0.5;
+    const w = Math.round(icon.width * s), h = Math.round(icon.height * s);
+    const cx = x + 6, cy = ry + 7;
+    ctx.drawImage(icon, Math.round(cx - w / 2), Math.round(cy - h / 2), w, h);
+    const col = kk > 0 ? (pop.t[k].up ? '#fff3b0' : '#ff8a7a') : undefined;
+    drawText(ctx, String(n).padStart(2, '0'), x + 16, ry + 4 - Math.round(kk * 2), col ? { color: col } : undefined);
   });
 }
 
@@ -292,7 +302,7 @@ export function drawHud(ctx, game) {
   else drawHearts(ctx, p.health, hasActive ? 39 : 4, 3, game.time);
   drawPocket(ctx, game);
   drawTrinket(ctx, game);
-  drawCounters(ctx, p, 3, 32);
+  drawCounters(ctx, game, 3, 32);
   const mh = drawMechanics(ctx, game, 4, 82);
   if (game.settings.foundHud) drawStats(ctx, game, 3, 86 + mh);
   if (game.settings.itemInfo === 'detailed' && !game.transition) drawItemInfo(ctx, game);

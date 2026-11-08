@@ -3,6 +3,7 @@
 //   'light' - after the final boss, a beam of daylight leading out of the cellar
 import { PixelGrid, ramp } from '../engine/pixelgrid.js';
 import { RAMP as R } from '../data/packArt.js';
+import { TUNING } from '../data/tuning.js';
 
 export class Trapdoor {
   constructor(x, y, kind = 'hatch') {
@@ -14,9 +15,12 @@ export class Trapdoor {
     this.open = 0; // 0..1
   }
 
+  // Returns true on the frame the flaps finish opening (the game puffs dust and thuds).
   update(dt) {
     this.t += dt;
-    if (this.t > 0.6) this.open = Math.min(1, this.open + dt * 1.8);
+    const F = TUNING.flow, was = this.open;
+    if (this.t > F.trapdoorDelay) this.open = Math.min(1, this.open + dt / F.trapdoorOpen);
+    return was < 1 && this.open >= 1;
   }
 
   get ready() { return this.open >= 1; }

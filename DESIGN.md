@@ -186,6 +186,48 @@ over the top of Wick's head on screen is really behind him on the floor and miss
   **40 gibs**, a huge stain with splatters around it and **0.8 s of slow motion** (everything at
   30% speed, `bossSlowmo`/`bossSlowmoScale`).
 
+### 8. Room flow (`TUNING.flow`)
+
+- **Clearing a room**: the doors open with a sound, a chance of a reward pickup (or a few) in the
+  middle of the room (the `roomClear` drop table; luck raises the chance), and the active item (and
+  a pocket active) gains **1 charge**, or **2** in a big room (2x1, 2x2, L-shapes). Timed and
+  shooting-charged actives fill their own way.
+- **Pickups** pop out with a bounce and a shadow, slide when nudged (walking into one you can't use
+  right now pushes it aside; explosions throw them), coins spin, keys and bombs glint. Hearts bob
+  and **thump** like a heartbeat every 0.9 s (a quick swell). Picking one up plays its own sound
+  (coin, heart, key...), and the HUD counter for coins, bombs and keys **pops** for 0.3 s: the icon
+  swells and the number flashes (pale yellow going up, red going down) and lifts a pixel.
+- **Item pedestals**: the item floats 6 px above the pedestal and bobs, with a soft glow and a small
+  shadow on the pedestal top that shrinks as it floats higher. Taking it plays the pickup animation
+  (from Part 4.5: held up overhead with its name).
+- **Trapdoor after a boss**: after 0.6 s its two banded flaps fold open (0.55 s), then bang open with
+  a thud, a puff of dust and a small shake. Stepping on it: Wick **hops up** (14 px, 0.3 s), then
+  **drops into the hole**, cut off at its rim as he sinks, while the screen fades to black (1.3 s in
+  all). The next floor opens with its **name banner** (the floor title card). After the final boss
+  the beam of daylight carries him up instead.
+
+### 9. Obstacles and bombs (`TUNING.obstacles`, `TUNING.bombs`)
+
+- **Rocks** block walking and shots; bombs break them. **Marked rocks** (a glowing X) drop 2–3
+  pickups when bombed. **Iron blocks** never break. **Pits** stop walking (fliers cross).
+  **Spikes** are either permanent tiles (half a heart) or traps that pop up and drop again.
+- **Boulders** (new): in normal rooms, half the 2x2 squares of rocks become one big boulder, and so
+  do 3 rocks next to a free floor tile, as long as every doorway can still reach every other one.
+  A bomb breaks the whole boulder (big debris, a shake and a stain of rubble on the floor).
+- **Wax heaps** (new): 12% of the other rocks become a pile of melted wax. Shots stop on it and each one melts it down a stage (4 stages, 4 shots), and it goes with a
+  squish. 20% chance of a pickup (`heap` drop table). Fliers pass over it.
+- **Powder kegs** (new): 4% of rocks become a red-hooped barrel with a pale flame mark. It cracks
+  with each shot and smokes at the lid; the 3rd shot (or any blast) sets it off 0.15 s later as an
+  explosion 1.25x a bomb's size, which hurts the player for a full heart ("A Powder Keg") and sets
+  off any keg up to 2 tiles away, so rows of kegs go off one after another.
+- **Fireplaces** (The Smolder): touching hurts, 4 shots (or a bomb) put one out, the flame shrinking
+  with each, and 25% of the time the ashes hold a pickup (`fireplace` drop table).
+- **Bombs** drop under the player and go off after **1.5 s**, flashing faster and ticking with each
+  flash. The blast (34 px radius, 40 damage) hits every enemy and boss in it, the player for a full
+  heart, every rock, heap, keg, boulder and marked rock, webs and other hazards, and bombable walls.
+  It leaves a black **scorch mark** with streaks on the floor for the rest of the room, knocks
+  enemies back and throws pickups out of the way, and lights any other bomb it touches.
+
 ---
 
 ## HEARTS
@@ -392,7 +434,8 @@ door clear, and only keeps layouts where every door is reachable. Special rooms 
 
 Tiles: rock (bombs break), pit (blocks walking; fliers cross), spikes (half a heart, unless flying),
 jar (2 shots break it; 30% drop chance), iron block (indestructible), marked rock (glowing X;
-bombing it drops 2–3 pickups).
+bombing it drops 2–3 pickups), and in normal rooms some rocks become boulders (2x2), wax heaps
+(4 shots melt them) or powder kegs (3 shots set them off); see 9. Obstacles and bombs.
 
 ### Floor generation
 

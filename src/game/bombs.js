@@ -4,9 +4,12 @@ import { buildSprite, silhouette, makeShadow } from '../engine/sprites.js';
 import { PLACED_BOMB, PICKUP_COLORS } from '../data/pickupSprites.js';
 import { moveCircle, HIT_X, HIT_Y } from './collision.js';
 
-export const BOMB_FUSE = 1.6;
-export const BOMB_RADIUS = 34;
-export const BOMB_DAMAGE = 40;
+import { TUNING } from '../data/tuning.js';
+import { sfx } from '../engine/audio.js';
+
+export const BOMB_FUSE = TUNING.bombs.fuse;
+export const BOMB_RADIUS = TUNING.bombs.radius;
+export const BOMB_DAMAGE = TUNING.bombs.damage;
 
 let ART = null;
 function art() {
@@ -39,6 +42,11 @@ export class Bomb {
       if (hit & HIT_X) this.vx = -this.vx * 0.4;
       if (hit & HIT_Y) this.vy = -this.vy * 0.4;
     }
+    // it ticks with every flash, faster and faster (the same rate the flashing uses)
+    const rate = this.fuse < 0.5 ? 20 : this.fuse < 1 ? 10 : 5;
+    const tick = Math.floor(this.age * rate);
+    if (tick !== this.lastTick && tick % 2 === 0) sfx('tick');
+    this.lastTick = tick;
     // Sparks from the fuse
     if (Math.random() < dt * 20) {
       g.particles.spawn(this.x + 1, this.y, { z: 14, vx: (Math.random() - 0.5) * 30, vz: 30, gravity: 120, life: 0.25, color: Math.random() < 0.5 ? '#ffd25a' : '#f08a24' });

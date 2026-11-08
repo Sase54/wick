@@ -46,7 +46,7 @@ import { drawWaxPanel, inkAlpha, INK } from '../ui/wax.js';
 import { BLOOD, ENEMIES, enemyDef } from '../data/enemies.js';
 import { DROP_TABLES, KEY_PITY_ROOMS, SOOT_BLAST_DAMAGE, HEART_KINDS } from '../data/pickups.js';
 import { PAL } from '../data/palette.js';
-import { VIEW_W, VIEW_H, ROOM_X, ROOM_Y, ROOM_W, ROOM_H, T, DIRS, TILE } from './constants.js';
+import { VIEW_W, VIEW_H, ROOM_X, ROOM_Y, ROOM_W, ROOM_H, T, DIRS, TILE, COLS, ROWS } from './constants.js';
 import { TUNING } from '../data/tuning.js';
 import { Gibs } from './gibs.js';
 import { drawHud } from '../ui/hud.js';
@@ -112,6 +112,24 @@ const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
 const BOSS_BLOOD = { blood: 'red', bone: 'bone', dust: 'dust', ember: 'ember', ghost: 'ghost', green: 'green', ice: 'crystal', spark: 'ember', tar: 'tar', violet: 'tar' };
 function bossBlood(boss) {
   return BLOOD[boss.def.blood] || BLOOD[BOSS_BLOOD[boss.def.style]] || BLOOD.red;
+}
+
+// A burn mark where a bomb went off: a sooty blot, darker in the middle, with streaks thrown out.
+function scorch(g, x, y, size) {
+  const rings = [[1, 'rgba(20,14,10,0.35)'], [0.7, 'rgba(12,8,6,0.45)'], [0.4, 'rgba(6,4,3,0.55)']];
+  for (const [k, col] of rings) {
+    const r = size * k;
+    g.fillStyle = col;
+    for (let dy = -r * 0.6; dy <= r * 0.6; dy++) {
+      const half = Math.round(r * Math.sqrt(Math.max(0, 1 - (dy / (r * 0.6)) ** 2)) * (0.9 + Math.random() * 0.2));
+      g.fillRect(Math.round(x - half), Math.round(y + dy), half * 2, 1);
+    }
+  }
+  g.fillStyle = 'rgba(10,6,4,0.5)';
+  for (let i = 0; i < 10; i++) {
+    const a = Math.random() * Math.PI * 2, len = size * (0.9 + Math.random() * 0.6);
+    for (let d = size * 0.5; d < len; d += 1.5) g.fillRect(Math.round(x + Math.cos(a) * d), Math.round(y + Math.sin(a) * d * 0.6), 1, 1);
+  }
 }
 
 // A blotchy stain on the floor where something died.
@@ -466,6 +484,7 @@ export class Game {
       e.graceT = EN.graceMin + Math.random() * (EN.graceMax - EN.graceMin);
     }
     this.gibs.clear();
+    this.pendingBlasts = [];
   }
 
   // The music for right now (src/data/music.js): a boss fight, a special room, the crawlspace, or
@@ -559,7 +578,7 @@ export class Game {
       this.stateT += dt;
       this.player.time += dt;
       this.particles.update(dt);
-      if (this.stateT >= 1.4) {
+      if (this.stateT >= TUNING.flow.descendTime) {
         if (this.floorDef.final) this.enterVictory();
         else this.startFloor(this.floorDef.skipTo || this.floorNum + 1);
       }
@@ -656,6 +675,13 @@ export class Game {
     this.room.keeper?.update(dt);
     this.separateEnemies();
     this.contactDamage();
+    // powder kegs about to blow
+    if (this.pendingBlasts?.length) {
+      for (const k of this.pendingBlasts) k.t -= dt;
+      const now = this.pendingBlasts.filter((k) => k.t <= 0);
+      this.pendingBlasts = this.pendingBlasts.filter((k) => k.t > 0);
+      for (const k of now) this.explode(k.x, k.y, BOMB_RADIUS * TUNING.obstacles.kegRadius, BOMB_DAMAGE, { source: 'A Powder Keg' });
+    }
     for (const b of this.bombs) {
       b.update(dt, this);
       // Walk into a bomb to push it (once you've stepped off it).
@@ -681,7 +707,12 @@ export class Game {
     for (const door of Object.values(this.cell.doors)) door.update(dt);
     const td = this.room.trapdoor;
     if (td) {
-      td.update(dt);
+      if (td.update(dt) && td.kind === 'hatch') {
+        // the flaps bang open: a puff of dust and a thud
+        sfx('doorOpen');
+        this.shake(2);
+        this.particles.burst(td.x, td.y, 16, { colors: ['#5a4a3a', '#8a7a62', '#3a2e24'], speed: 55, z: 2, vz: 30, gravity: -20, life: 0.7, drag: 3, sizeVar: 2 });
+      }
       if (td.ready && !p.dead && Math.hypot(p.x - td.x, p.y - td.y) < 8) this.enterTrapdoor();
     }
     this.room.redraw();
@@ -1067,9 +1098,12 @@ export class Game {
     sfx('doorOpen');
     sfx('roomClear');
     const p = this.player;
+    // a charge for the active item: two for a big room (more than one screen)
+    const big = this.room.cols * this.room.rows > COLS * ROWS;
+    const gain = big ? TUNING.flow.bigRoomCharge : TUNING.flow.roomCharge;
     for (const slot of [p.active, p.pocket]) {
       const a = slot && itemDef(slot.id).active;
-      if (a && !a.timed && !a.byShooting) slot.charge = Math.min(a.charge, slot.charge + 1);
+      if (a && !a.timed && !a.byShooting) slot.charge = Math.min(a.charge, slot.charge + gain);
     }
     // each Moldy Heart hatches a gnat
     for (let i = 0; i < p.health.rotten && this.gnats.length < 12; i++) this.gnats.push(new Gnat(p.x, p.y - 4));
@@ -1396,6 +1430,10 @@ export class Game {
       this.rollDrops('markedRock', x, y);
       progress.event('markedRock');
     }
+    // a wax heap knocked flat sometimes leaves something; a powder keg blows up (a moment later,
+    // so kegs caught in a blast go off one after another)
+    else if (tile === T.HEAP) this.rollDrops('heap', x, y);
+    else if (tile === T.KEG) (this.pendingBlasts ??= []).push({ x, y, t: TUNING.obstacles.kegDelay });
   }
 
   updatePickups(dt) {
@@ -1456,14 +1494,15 @@ export class Game {
   // ---------------------------------------------------------------------------
   // Bombs
   // safe: a shot bursting (Nitro Wax): never hurts you, leaves machines, beggars and pickups be
-  explode(x, y, radius = BOMB_RADIUS, damage = BOMB_DAMAGE, { safe = false, onHit = null } = {}) {
+  explode(x, y, radius = BOMB_RADIUS, damage = BOMB_DAMAGE, { safe = false, onHit = null, source = 'Your Own Bomb' } = {}) {
     sfx('explosion', { big: radius > BOMB_RADIUS });
     this.shake(safe ? 3 : 7);
     this.effects.disc(x, y, radius * 0.8, 'rgba(255,230,160,0.9)', 0.12);
     this.effects.ring(x, y, radius + 6, '#f08a24', 0.35, 6);
     this.particles.burst(x, y, 28, { colors: ['#fff3c0', '#ffd25a', '#f08a24', '#c2461c'], speed: 130, z: 6, vz: 90, gravity: 200, life: 0.5, sizeVar: 2 });
     this.particles.burst(x, y, 14, { colors: ['#2a2420', '#3a3430', '#1a1614'], speed: 50, z: 8, vz: 40, gravity: -30, life: 0.9, size: 2, sizeVar: 2, drag: 3 });
-    this.room.paintDecal((g) => splat(g, x, y + 2, 12, ['#0e0a08', '#1a1210', '#120c0a']));
+    if (!safe) this.room.paintDecal((g) => scorch(g, x, y + 2, TUNING.bombs.scorch * (radius / BOMB_RADIUS)));
+    else this.room.paintDecal((g) => splat(g, x, y + 2, 8, ['#0e0a08', '#1a1210', '#120c0a']));
 
     // Tiles
     const room = this.room;
@@ -1484,7 +1523,7 @@ export class Game {
       if (d < radius + e.r) {
         e.intangible = false;
         onHit?.(e);
-        e.takeHit(damage, dx / d, dy / d, 180, this);
+        e.takeHit(damage, dx / d, dy / d, TUNING.bombs.knockback, this);
       }
     }
 
@@ -1492,7 +1531,7 @@ export class Game {
 
     // The player is not immune to their own bombs
     const p = this.player;
-    if (!safe && Math.hypot(p.x - x, p.y - y) < radius + p.r) p.hurt(2, 'Your Own Bomb', this, x, y);
+    if (!safe && Math.hypot(p.x - x, p.y - y) < radius + p.r) p.hurt(TUNING.bombs.playerDamage, source, this, x, y);
 
     // hazards caught in the blast (webs burn away)
     for (const h of this.room.hazards) if (h.blast && Math.hypot(h.x - x, h.y - y) < radius + (h.r || 0)) h.blast(this);
@@ -1502,7 +1541,7 @@ export class Game {
     for (const it of this.pickups) {
       if (it.price) continue;
       const dx = it.x - x, dy = it.y - y, d = Math.hypot(dx, dy) || 1;
-      if (d < radius * 1.5) { it.vx += (dx / d) * 120; it.vy += (dy / d) * 120; it.vz = 60; it.z = Math.max(it.z, 1); }
+      if (d < radius * 1.5) { it.vx += (dx / d) * TUNING.bombs.pickupPush; it.vy += (dy / d) * TUNING.bombs.pickupPush; it.vz = 60; it.z = Math.max(it.z, 1); }
     }
     for (const b of this.bombs) if (!b.done && Math.hypot(b.x - x, b.y - y) < radius + 6) b.fuse = Math.min(b.fuse, 0.12);
 
@@ -1823,7 +1862,7 @@ export class Game {
       ctx.fillRect(0, 0, VIEW_W, VIEW_H);
     }
     if (this.state === 'descend') {
-      ctx.fillStyle = `rgba(0,0,0,${Math.min(1, this.stateT / 1.3)})`;
+      ctx.fillStyle = `rgba(0,0,0,${Math.max(0, Math.min(1, (this.stateT - TUNING.flow.jumpHop) / (TUNING.flow.descendTime - TUNING.flow.jumpHop)))})`;
       ctx.fillRect(0, 0, VIEW_W, VIEW_H);
     }
     if (this.state !== 'gameover' && this.state !== 'victory' && !this.bossIntro && !this.floorCard) drawHud(ctx, this);
@@ -2059,15 +2098,26 @@ export class Game {
       if (e === this.player && this.player.dead) {
         this.player.renderDeath(ctx, ox, oy, this.state === 'dying' ? Math.min(1, this.stateT / TUNING.player.meltTime) : 1);
       } else if (e === this.player && this.state === 'descend') {
-        // Wick climbs down into the dark: shrink toward the hole.
-        const s = Math.max(0.05, 1 - this.stateT / 1.1);
-        const px = this.player.x + ox, py = this.player.y + oy;
-        ctx.save();
-        ctx.translate(px, py);
-        ctx.scale(s, s);
-        ctx.translate(-px, -py);
-        this.player.render(ctx, ox, oy);
-        ctx.restore();
+        // jumping into the trapdoor: a hop up, then dropping into the hole (cut off at its rim)
+        const F = TUNING.flow, t = this.stateT, td = this.room.trapdoor;
+        let z;
+        if (td?.kind === 'light') z = (t / F.descendTime) ** 1.6 * 90;   // carried up the beam of daylight
+        else if (t < F.jumpHop) z = Math.sin((t / F.jumpHop) * Math.PI / 2) * F.jumpHeight;
+        else {
+          const k = Math.min(1, (t - F.jumpHop) / F.jumpFall);
+          z = F.jumpHeight - k * k * (F.jumpHeight + 40);
+        }
+        if (z > -40) {
+          ctx.save();
+          if (z < 0 && td) {
+            ctx.beginPath();
+            ctx.rect(0, 0, VIEW_W, Math.round(td.y + oy + 2));
+            ctx.clip();
+          }
+          ctx.translate(0, -Math.round(z));
+          this.player.render(ctx, ox, oy);
+          ctx.restore();
+        }
       } else {
         e.render(ctx, ox, oy, this);
       }

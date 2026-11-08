@@ -6,6 +6,7 @@ import { moveCircle, HIT_X, HIT_Y } from './collision.js';
 import { drawText } from '../ui/text.js';
 import { consumableIcon, trinketIcon, batteryIcon } from './consumables.js';
 import { itemDef } from './items.js';
+import { TUNING } from '../data/tuning.js';
 
 const chargeMax = (s) => itemDef(s.id).active?.charge ?? 0;
 const needsCharge = (p) => [p.active, p.pocket].find((s) => s && !itemDef(s.id).active?.costHealth && s.charge < chargeMax(s));
@@ -123,11 +124,18 @@ export class Pickup {
   render(ctx, ox, oy) {
     if (this.def.fades && this.age > this.def.fades - 1.5 && Math.floor(this.age * 10) % 2) return;
     const img = this.image;
-    const bob = HEART_KINDS.has(this.def.kind) ? Math.round(Math.sin(this.t * 4)) : 0;
+    const heart = HEART_KINDS.has(this.def.kind);
+    const bob = heart ? Math.round(Math.sin(this.t * 4)) : 0;
     const x = Math.round(this.x - img.width / 2 + ox);
     const y = Math.round(this.y + 4 - img.height - this.z + oy) + bob;
     if (this.def.double) ctx.drawImage(img, x - 3, y - 2);
-    ctx.drawImage(img, x, y);
+    // hearts thump like a heartbeat (TUNING.flow.heartPulse): a quick swell, then back
+    const beat = heart && !this.price ? (this.t % TUNING.flow.heartPulse) / TUNING.flow.heartPulse : 1;
+    const swell = beat < 0.12 ? Math.sin((beat / 0.12) * Math.PI) * 0.25 : 0;
+    if (swell > 0.02) {
+      const w = Math.round(img.width * (1 + swell)), h = Math.round(img.height * (1 + swell));
+      ctx.drawImage(img, Math.round(this.x - w / 2 + ox), y + img.height - h, w, h);
+    } else ctx.drawImage(img, x, y);
     // occasional glint
     if (Math.floor(this.t * 3) % 7 === 0 && this.z === 0) {
       ctx.fillStyle = '#fffbea';

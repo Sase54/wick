@@ -11,11 +11,19 @@ import { shapeOf, shapeSlots, shapeWall, slotCell, doorwayTiles } from './shapes
 import { generateRoomBase, composeRoom, potDebris } from './roomart.js';
 import { decorateRoom } from './roomdecor.js';
 import { sfx } from '../engine/audio.js';
+import { TUNING } from '../data/tuning.js';
 
-const WALK_SOLID = new Set([T.ROCK, T.PIT, T.POT, T.BLOCK, T.TINTED, T.WALL]);
-const SHOT_SOLID = new Set([T.ROCK, T.POT, T.BLOCK, T.TINTED, T.WALL]);
-const FLY_SOLID = new Set([T.ROCK, T.POT, T.BLOCK, T.TINTED, T.WALL]); // fliers cross pits
-const POT_HITS = 2;
+const WALK_SOLID = new Set([T.ROCK, T.PIT, T.POT, T.BLOCK, T.TINTED, T.WALL, T.BIGROCK, T.HEAP, T.KEG]);
+const SHOT_SOLID = new Set([T.ROCK, T.POT, T.BLOCK, T.TINTED, T.WALL, T.BIGROCK, T.HEAP, T.KEG]);
+// fliers cross pits and low wax heaps
+const FLY_SOLID = new Set([T.ROCK, T.POT, T.BLOCK, T.TINTED, T.WALL, T.BIGROCK, T.KEG]);
+// tiles shots wear down: how many hits each takes (TUNING.obstacles)
+const HEAP_DEBRIS = ['#c9b48a', '#a8906a', '#e8d9b0'];
+const KEG_DEBRIS = ['#6a4428', '#3a2416', '#8a2a1c'];
+const HITS_TO_BREAK = () => {
+  const O = TUNING.obstacles;
+  return { [T.POT]: O.potHits, [T.HEAP]: O.heapHits, [T.KEG]: O.kegHits };
+};
 
 export class Room {
   constructor({ template, rng, style = {}, type = 'normal' }) {
@@ -69,6 +77,7 @@ export class Room {
         if (this.inBounds(c, r) && this.grid[i] !== T.WALL) this.grid[i] = T.FLOOR;
       }
     }
+    if (type === 'normal') this.varyObstacles(rng.fork('obstacles'));
     this.doors = {};          // slot key -> Door, filled in by the floor
     this.cleared = true;      // set to false when enemies are placed
     this.enemies = [];
@@ -115,19 +124,79 @@ export class Room {
   get centerX() { return this.x0 + this.W / 2; }
   get centerY() { return this.y0 + this.H / 2; }
 
-  // A shot hit tile (c, r). Jars crack and then break. Returns true if something broke.
+  // A shot hit tile (c, r). Jars crack and then break, wax heaps shrink a stage per hit, powder
+  // kegs take a few hits and blow up. Returns true if something broke.
   hitTile(c, r, game) {
-    if (this.get(c, r) !== T.POT) return false;
+    const t = this.get(c, r);
+    const need = HITS_TO_BREAK()[t];
+    if (!need) return false;
     const i = r * this.cols + c;
     this.hits[i]++;
     this.dirty = true;
     const { x, y } = this.tileCenter(c, r);
-    if (this.hits[i] < POT_HITS) {
-      game.particles.burst(x, y, 3, { colors: ['#7a5034', '#9a6a44'], speed: 30, z: 8 });
+    if (this.hits[i] < need) {
+      const colors = t === T.HEAP ? HEAP_DEBRIS : t === T.KEG ? KEG_DEBRIS : ['#7a5034', '#9a6a44'];
+      game.particles.burst(x, y, t === T.HEAP ? 6 : 3, { colors, speed: 30, z: 8 });
+      if (t === T.KEG) sfx('clink');
       return false;
     }
     this.breakTile(c, r, game);
     return true;
+  }
+
+  // The 2x2 boulders: the top-left tile of each one, found by scanning the grid (so they need no
+  // saving: they're always laid out on whole 2x2 squares in scan order).
+  bigRockAnchors() {
+    if (this._anchorsV === this.version && this._anchors) return this._anchors;
+    const out = new Set(), used = new Set(), at = (c, r) => this.inBounds(c, r) && this.get(c, r) === T.BIGROCK;
+    for (let r = 0; r < this.rows; r++) {
+      for (let c = 0; c < this.cols; c++) {
+        const i = r * this.cols + c;
+        if (used.has(i) || !at(c, r)) continue;
+        if (!(at(c + 1, r) && at(c, r + 1) && at(c + 1, r + 1))) continue;
+        out.add(i);
+        for (const k of [i, i + 1, i + this.cols, i + this.cols + 1]) used.add(k);
+      }
+    }
+    this._anchors = out;
+    this._anchorsV = this.version;
+    return out;
+  }
+
+  // In normal rooms some of the layout's plain rocks become other obstacles: 2x2 squares of rocks
+  // into big boulders, single rocks into wax heaps or powder kegs (TUNING.obstacles). Every one
+  // of them blocks walking like the rock it replaces, so paths through the room stay the same.
+  varyObstacles(rng) {
+    const O = TUNING.obstacles, rock = (c, r) => this.inBounds(c, r) && this.get(c, r) === T.ROCK;
+    // a boulder fills a 2x2 square of rocks, or 3 rocks and a floor tile that nothing needs: not a
+    // spawn marker, not near a doorway, and every doorway can still reach every other one
+    const slotCells = this.slots.map((s) => s.cell);
+    const spawnAt = new Set(this.spawns.map((s) => s.r * this.cols + s.c));
+    const freeOk = (c, r) => {
+      const i = r * this.cols + c;
+      if (this.get(c, r) !== T.FLOOR || spawnAt.has(i)) return false;
+      if (slotCells.some(([sc, sr]) => Math.max(Math.abs(sc - c), Math.abs(sr - r)) <= 2)) return false;
+      const blocked = new Set();
+      for (let k = 0; k < this.grid.length; k++) if (WALK_SOLID.has(this.grid[k])) blocked.add(k);
+      return this.doorsConnected(blocked, i, slotCells);
+    };
+    for (let r = 0; r < this.rows - 1; r++) {
+      for (let c = 0; c < this.cols - 1; c++) {
+        const sq = [[0, 0], [1, 0], [0, 1], [1, 1]];
+        const rocks = sq.filter(([dc, dr]) => rock(c + dc, r + dr)).length;
+        if (rocks < 3) continue;
+        const gap = sq.find(([dc, dr]) => !rock(c + dc, r + dr));
+        if (gap && !freeOk(c + gap[0], r + gap[1])) continue;
+        if (!rng.chance(O.bigRockChance)) continue;
+        for (const [dc, dr] of sq) this.grid[(r + dr) * this.cols + c + dc] = T.BIGROCK;
+      }
+    }
+    for (let i = 0; i < this.grid.length; i++) {
+      if (this.grid[i] !== T.ROCK) continue;
+      const roll = rng.next();
+      if (roll < O.kegChance) this.grid[i] = T.KEG;
+      else if (roll < O.kegChance + O.heapChance) this.grid[i] = T.HEAP;
+    }
   }
 
   // ---- safe spawn spots: the one place everything that appears at runtime gets its spot
@@ -251,10 +320,33 @@ export class Room {
   breakTile(c, r, game) {
     const t = this.get(c, r);
     if (t === T.FLOOR || t === T.PIT || t === T.BLOCK || t === T.SPIKES || t === T.WALL) return;
+    // a boulder goes all at once: find its 2x2 square and break the whole thing
+    if (t === T.BIGROCK) {
+      const anchors = this.bigRockAnchors(), i = r * this.cols + c;
+      const a = [i, i - 1, i - this.cols, i - this.cols - 1].find((k) => anchors.has(k));
+      const ac = a === undefined ? c : a % this.cols, ar = a === undefined ? r : Math.floor(a / this.cols);
+      for (const [dc, dr] of [[0, 0], [1, 0], [0, 1], [1, 1]]) if (this.get(ac + dc, ar + dr) === T.BIGROCK) this.set(ac + dc, ar + dr, T.FLOOR);
+      const x = this.x0 + (ac + 1) * TILE, y = this.y0 + (ar + 1) * TILE;
+      const colors = (this.style.look?.rock || PAL.rock).slice(1);
+      sfx('rockBreak');
+      game.shake?.(4);
+      game.particles.burst(x, y, 30, { colors, speed: 100, z: 10, vz: 90, size: 2, sizeVar: 2, life: 0.8 });
+      this.paintDecal((g) => {
+        g.fillStyle = 'rgba(0,0,0,0.25)';
+        g.fillRect(x - 18, y - 6, 36, 13);
+        for (let k = 0; k < 20; k++) {
+          g.fillStyle = colors[k % colors.length];
+          g.fillRect(Math.round(x + (Math.random() - 0.5) * 44), Math.round(y + (Math.random() - 0.5) * 28), 2, 1);
+        }
+      });
+      game.onTileBroken?.(t, x, y);
+      return;
+    }
     const { x, y } = this.tileCenter(c, r);
     this.set(c, r, T.FLOOR);
-    sfx(t === T.POT ? 'jarBreak' : 'rockBreak');
-    const colors = t === T.POT ? potDebris(this.style.look?.pot) : (this.style.look?.rock || PAL.rock).slice(1);
+    sfx(t === T.POT ? 'jarBreak' : t === T.HEAP ? 'squish' : 'rockBreak');
+    const colors = t === T.POT ? potDebris(this.style.look?.pot) : t === T.HEAP ? HEAP_DEBRIS : t === T.KEG ? KEG_DEBRIS
+      : (this.style.look?.rock || PAL.rock).slice(1);
     game.particles.burst(x, y, 14, { colors, speed: 70, z: 8, vz: 70, size: 1, sizeVar: 2, life: 0.6 });
     this.paintDecal((g) => {
       g.fillStyle = 'rgba(0,0,0,0.25)';

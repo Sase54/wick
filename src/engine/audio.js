@@ -60,6 +60,7 @@ const SFX = Object.fromEntries([
   }),
   N('rumble', (a) => a.noise({ dur: 0.6, vol: 0.22, type: 'lowpass', f: 220, f2: 90 })),
   N('hiss', (a) => a.noise({ dur: 0.45, vol: 0.14, type: 'highpass', f: vary(3500), f2: 5500 })),
+  N('tick', (a) => a.tone({ type: 'square', f: vary(2400), f2: 2000, dur: 0.025, vol: 0.05 })),
   N('clink', (a) => {
     a.tone({ type: 'square', f: vary(1800), f2: 1400, dur: 0.05, vol: 0.06 });
     a.tone({ type: 'triangle', f: vary(2600), dur: 0.08, vol: 0.05, delay: 0.02 });

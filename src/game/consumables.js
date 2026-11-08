@@ -321,7 +321,7 @@ export const CONSUMABLE_FX = {
     const room = g.room;
     for (let r = 0; r < room.rows; r++) for (let c = 0; c < room.cols; c++) {
       const t = room.get(c, r);
-      if (t === T.ROCK || t === T.POT || t === T.TINTED) room.breakTile(c, r, g);
+      if (t === T.ROCK || t === T.POT || t === T.TINTED || t === T.BIGROCK || t === T.HEAP || t === T.KEG) room.breakTile(c, r, g);
     }
     g.shake(5);
   },

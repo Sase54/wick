@@ -70,6 +70,22 @@ export const DROP_TABLES = {
       { type: 'trinket', weight: 0.6 }, { type: 'rune', weight: 0.6 },
     ],
   },
+  // a wax heap knocked flat (TUNING.obstacles.heapHits)
+  heap: {
+    chance: 0.2, luckBonus: 0.02, count: [1, 1],
+    entries: [
+      { type: 'coin', weight: 8 }, { type: 'heartHalf', weight: 2 }, { type: 'bomb', weight: 1 }, { type: 'key', weight: 1 },
+      { type: 'silver', weight: 0.3 }, { type: 'pill', weight: 0.3 },
+    ],
+  },
+  // a fireplace put out
+  fireplace: {
+    chance: 0.25, luckBonus: 0.02, count: [1, 1],
+    entries: [
+      { type: 'coin', weight: 5 }, { type: 'heartHalf', weight: 3 }, { type: 'heart', weight: 1 }, { type: 'bomb', weight: 1 },
+      { type: 'key', weight: 1 }, { type: 'soot', weight: 0.4 },
+    ],
+  },
 };
 
 // Pickups the shop can stock, with prices in coins.
